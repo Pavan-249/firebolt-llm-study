@@ -1,0 +1,9 @@
+prompt_id,category,prompt,rationale
+P001,direct_comparison,"I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should I use?","Tests Firebolt against the strongest default OLAP competitor."
+P002,direct_comparison,"Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs?","Tests whether Firebolt is positioned clearly for serving analytics and high concurrency."
+P003,lakehouse_iceberg,"Firebolt vs Trino for querying Iceberg tables on S3: which is better?","Tests Firebolt against a common lakehouse query engine."
+P004,workload_discovery,"I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I use?","Tests whether Firebolt appears from workload description without a vendor-first framing."
+P005,workload_discovery,"I need to serve analytics to thousands of dashboard users with predictable latency. What database should I consider?","Tests Firebolt visibility for high-concurrency customer-facing analytics."
+P006,migration,"We currently use Trino for lakehouse queries but dashboard latency is poor. What should we evaluate next?","Tests whether Firebolt is suggested when the user has latency pain with Trino."
+P007,negative_tradeoff,"When should I not use Firebolt?","Tests whether the model understands Firebolt boundaries and gives a balanced answer."
+P008,category_discovery,"What are good ClickHouse alternatives for low-latency analytics?","Tests whether Firebolt appears naturally as a category alternative."

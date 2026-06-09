@@ -1,0 +1,19 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
+
+# Local assistant/editor state
+.claude/
+
+# Runtime-only outputs
+results/archive/
+results/progress.json
+results/available_models.json
+results/raw_answers.jsonl

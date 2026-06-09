@@ -1,0 +1,48 @@
+{
+  "experiment_name": "Firebolt LLM Visibility Benchmark",
+  "author": "Pavan Kumar",
+  "version": "1.0",
+  "objective": "Measure whether Gemini models mention and recommend Firebolt when developers ask realistic analytics database selection questions.",
+  "product": "Firebolt",
+  "benchmark_type": "LLM visibility and recommendation quality",
+  "method_summary": "Run a fixed set of developer-style prompts across a small group of Gemini models. For each answer, check whether Firebolt is mentioned, where it ranks among the products named, and whether it is recommended as a fit for the stated workload. Mention and rank are decided by deterministic text checks. An LLM judge is used only to explain the answer, not to detect mentions.",
+  "models": [
+    {
+      "provider": "Google Gemini",
+      "model": "gemini-3.1-flash-lite",
+      "role": "Fast baseline model with the highest daily quota in this account. Also used as the judge model."
+    },
+    {
+      "provider": "Google Gemini",
+      "model": "gemini-3.5-flash",
+      "role": "Stronger Flash model, used to check whether better reasoning changes how often Firebolt appears."
+    }
+  ],
+  "generation_settings": {
+    "temperature": 0.2,
+    "top_p": 0.95,
+    "max_output_tokens": 900,
+    "max_prompts": 8
+  },
+  "judge_settings": {
+    "model": "gemini-3.1-flash-lite",
+    "temperature": 0.0,
+    "max_output_tokens": 900
+  },
+  "prompt_categories": {
+    "direct_comparison": "Tests whether the model can compare Firebolt against a named competitor.",
+    "workload_discovery": "Tests whether Firebolt appears when the user describes the workload but does not name Firebolt.",
+    "lakehouse_iceberg": "Tests Firebolt positioning around S3, Parquet, Iceberg, and external table analytics.",
+    "migration": "Tests whether Firebolt is suggested when a team has pain with its current system.",
+    "negative_tradeoff": "Tests whether the model understands when Firebolt is not the right fit.",
+    "category_discovery": "Tests whether Firebolt appears naturally in a broad category question."
+  },
+  "limitations": [
+    "This is a small diagnostic benchmark, not a full market study.",
+    "Only Gemini models are included in this run.",
+    "The run uses 8 prompts per model to stay inside the free Gemini quota.",
+    "Model answers can change over time as model versions and training data change.",
+    "The judge model writes the explanation text, so important rows should still be read by a person.",
+    "The result is most useful when the same prompt set is rerun after public content about Firebolt changes."
+  ]
+}

@@ -1,0 +1,430 @@
+run_id,created_at,prompt_id,category,prompt,prompt_rationale,provider,model,system_prompt,generation_settings,answer,status,firebolt_in_prompt,firebolt_mentioned,firebolt_recommended,regex_firebolt_recommended,judge_firebolt_recommended,recommendation_metric_applicable,firebolt_rank,visibility_score,content_gap,answer_excerpt,judge_status,judge_error,recommended_products,primary_recommendation,recommendation_reason,why_model_likely_answered_this_way,why_firebolt_was_or_was_not_recommended,what_public_evidence_would_improve_firebolt_chance,answer_quality_score_0_to_5,firebolt_explanation_quality_0_to_5,competitor_explanation_quality_0_to_5,factual_risks,missing_firebolt_evidence,one_line_takeaway
+20260609_123216_17495b50,2026-06-09T12:32:17,P001,direct_comparison,I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should I use?,Tests Firebolt against the strongest default OLAP competitor.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Choosing between Firebolt and ClickHouse is a classic ""managed service vs. open-source power"" trade-off. Both are built for high-performance, sub-second analytical queries on massive datasets, but they approach the problem from fundamentally different philosophies.
+
+Here is how I would break down the decision based on your engineering constraints.
+
+### 1. ClickHouse: The ""Control Everything"" Engine
+ClickHouse is the industry standard for high-performance, column-oriented OLAP. It is incredibly fast, but it is also a ""heavy"" piece of infrastructure.
+
+*   **The Upside:** It is battle-tested. The ecosystem is massive, the documentation is exhaustive, and you can run it anywhere (on-prem, K8s, or via ClickHouse Cloud). If you have a complex data model, ClickHouse’s engine gives you granular control over indexing (skipping indices), data skipping, and storage tiers.
+*   **The Trade-off:** Operational complexity. While ClickHouse Cloud has improved significantly, self-hosting it is a full-time job. You need to manage Zookeeper/ClickHouse Keeper, handle shard rebalancing, and tune merge trees. If you don't have a dedicated SRE or platform team, the operational overhead can quickly outweigh the performance gains.
+*   **Best for:** Teams that need extreme performance, want to avoid vendor lock-in, have complex data engineering requirements, or need to deploy in restricted environments (like VPCs or on-prem).
+
+### 2. Firebolt: The ""Managed Performance"" Engine
+Firebolt is a cloud-native, decoupled storage-and-compute engine. It is designed to feel more like a modern data warehouse (like Snowflake) but with the latency profile of a specialized OLAP engine.
+
+*   **The Upside:** It is designed for ""developer experience."" Firebolt abstracts away the complexity of sharding, indexing, and cluster management. It uses a proprietary file format and indexing strategy that often requires less manual tuning than ClickHouse to achieve ""fast enough"" results. It’s particularly strong if your workload involves frequent joins across large tables, as its query optimizer is built specifically for that.
+*   **The Trade-off:** It is a proprietary, managed-only platform. You are locked into their ecosystem. Because it is a newer, more opinionated platform, you don't have the same depth of community-driven plugins, third-party integrations, or ""how-to"" blog posts that you find with ClickHouse.
+*   **Best for:** Teams that want to ship features fast and don't want to spend engineering cycles on database tuning or infrastructure management. If your team is small and you need to build a customer-facing analytics dashboard yesterday, Firebolt is often the faster path to production.
+
+### Key Decision Factors
+
+| Factor | ClickHouse | Firebolt |
+| :--- | :--- | :--- |
+| **Operational Overhead** | High (if self-hosted) / Medium (Cloud) | Low (Managed) |
+| **Ecosystem/Community** | Massive | Growing/Niche |
+| **Flexibility** | Extremely High | Moderate (Opinionated) |
+| **Vendor Lock-in** | Low (Open Source) | High (Proprietary) |
+| **Query Complexity** | Excellent for flat tables | Excellent for complex joins |
+
+### My Advice
+
+**Choose ClickHouse if:**
+*   You have a dedicated infrastructure or data engineering team.
+*   You need to run the database in a specific environment (e.g., air-gapped, on-prem, or across multiple clouds).
+*   You have a massive, high-concurrency workload where you need to squeeze every millisecond out of the hardware through manual tuning.
+*   You value the ability to inspect and modify the source code.
+
+**Choose Firebolt if:**
+*   You are a small team or a startup where ""time-to-market"" is your primary KPI.
+*   You want to avoid the ""database administration"" tax entirely.
+*   Your data model involves complex joins that are proving difficult to optimize in traditional OLAP engines.
+*   You are comfortable with a managed SaaS model and don't mind the vendor lock-in in exchange for a smoother",ok,True,True,True,True,False,True,first,10,Performing well,"Choosing between Firebolt and ClickHouse is a classic ""managed service vs. open-source power"" trade-off. Both are built for high-performance, sub-second analytical queries on massive datasets, but they approach the problem from fundamentally different philosophies. Here is how I would break down the decision based on your engineering constraints. ### 1. ClickHouse: The ""Control Everything"" Engine ClickHouse is the industry standard for high-performance, column-oriented OLAP. It is incredibly fast, but it is also a ""heavy"" piece of infrastructure. * **The Upside:** It is battle-tested. The ecosystem is massive, the documentation is exhaustive, and you can run it anywhere (on-prem, K8s, or via...",ok,,ClickHouse | Firebolt,unclear,The answer provides a balanced comparison based on operational overhead and team size rather than declaring a winner.,"The model focuses on the trade-off between open-source flexibility/maturity and managed-service developer experience, which is the standard industry framing for these two products.","Firebolt was presented as a viable alternative for specific use cases (small teams, complex joins) but not as a universal recommendation, maintaining neutrality.","Publicly available, third-party benchmark reports comparing Firebolt's join performance against ClickHouse's latest versions, and more case studies detailing migration paths from ClickHouse to Firebolt.",5,4,5,"The claim that Firebolt is 'better' for complex joins is a common marketing narrative but lacks specific technical evidence in the answer to support why it outperforms ClickHouse's join optimizations. | The answer implies ClickHouse is always high-overhead, ignoring the maturity of ClickHouse Cloud.","Specifics on Firebolt's unique indexing (e.g., sparse indexing) compared to ClickHouse's primary keys. | Concrete examples of how Firebolt's decoupled storage-and-compute architecture provides a tangible cost or performance benefit over ClickHouse's architecture.","The answer provides a high-quality, balanced comparison that correctly identifies the operational trade-offs between the two platforms."
+20260609_123216_17495b50,2026-06-09T12:44:31,P002,direct_comparison,Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs?,Tests whether Firebolt is positioned clearly for serving analytics and high concurrency.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Choosing between Firebolt and ClickHouse for customer-facing analytics is a classic ""managed service vs. open-source power"" trade-off. Both are built for high-concurrency, low-latency analytical queries, but they approach the problem from fundamentally different architectural philosophies.
+
+Here is how I would break down the decision for your specific use case.
+
+### 1. ClickHouse: The ""Performance at Any Cost"" Engine
+ClickHouse is the industry standard for raw performance. It is a columnar database that is incredibly efficient at scanning massive datasets.
+
+*   **The Upside:** It is arguably the fastest engine on the market for analytical queries. Because it is open-source, you have total control over the hardware, the configuration, and the data lifecycle. If you have a massive scale and a team that enjoys tuning systems, ClickHouse will give you the best price-to-performance ratio.
+*   **The Tradeoffs:**
+    *   **Operational Complexity:** Managing a production-grade ClickHouse cluster is non-trivial. You need to handle sharding, replication, and Zookeeper/Keeper coordination. Even with managed offerings like ClickHouse Cloud or Altinity, you still have to think about table design (e.g., choosing the right MergeTree engine, partition keys, and index granularity).
+    *   **Updates/Deletes:** ClickHouse is designed for immutable data. While it supports `ALTER TABLE ... UPDATE/DELETE`, these are asynchronous, heavy operations. If your customer-facing dashboard requires frequent, granular updates to existing records, ClickHouse will fight you.
+*   **Best for:** Teams with dedicated SRE/DBA bandwidth who need to squeeze every millisecond out of their queries and have a workload that is primarily ""append-only.""
+
+### 2. Firebolt: The ""Managed Experience"" Engine
+Firebolt is a cloud-native, decoupled storage-and-compute engine. It was built specifically to solve the ""customer-facing analytics"" problem by abstracting away the infrastructure.
+
+*   **The Upside:** Firebolt is designed to be ""set it and forget it."" It handles indexing (via their proprietary sparse indexing) much more automatically than ClickHouse. It also excels at concurrency; it can spin up independent compute clusters (engines) for different customer segments or dashboard types, ensuring that a heavy report doesn't starve your main dashboard of resources.
+*   **The Tradeoffs:**
+    *   **Vendor Lock-in:** Unlike ClickHouse, which you can run anywhere (on-prem, AWS, GCP, Azure), Firebolt is a proprietary SaaS. You are tied to their roadmap and their pricing model.
+    *   **Ecosystem Maturity:** ClickHouse has a massive community, endless integrations, and a decade of battle-testing. Firebolt is newer; you will find fewer third-party tools, fewer StackOverflow answers, and a smaller pool of experienced engineers to hire.
+*   **Best for:** Lean engineering teams who want to ship a high-performance dashboard *now* without hiring a database specialist to manage the infrastructure.
+
+### Key Comparison Points
+
+| Feature | ClickHouse | Firebolt |
+| :--- | :--- | :--- |
+| **Operational Overhead** | High (Self-managed) / Medium (Cloud) | Low (Fully Managed) |
+| **Concurrency** | Good, but requires tuning | Excellent (via multi-engine architecture) |
+| **Data Updates** | Difficult (Async/Heavy) | Easier (Designed for modern data stacks) |
+| **Ecosystem** | Massive (Standard for observability) | Growing (Focused on SaaS analytics) |
+| **Cost Model** | Hardware/Compute-based | Usage-based (Compute/Storage) |
+
+### My Advice for Your Decision
+
+**Choose ClickHouse if:**
+1.  You have a team that is comfortable managing infrastructure or you have the budget for a managed service like Altinity.
+2.  Your data is largely immutable (logs, events, telemetry).
+3.  You need to run this on-premise or across multiple clouds for compliance reasons.
+4.  You are cost-sensitive at extreme scale and have the engineering hours to optimize the cluster.
+
+**Choose Firebolt if:**
+1.  You are a small-to-medium team and",ok,True,True,True,True,True,True,first,12,Performing well,"Choosing between Firebolt and ClickHouse for customer-facing analytics is a classic ""managed service vs. open-source power"" trade-off. Both are built for high-concurrency, low-latency analytical queries, but they approach the problem from fundamentally different architectural philosophies. Here is how I would break down the decision for your specific use case. ### 1. ClickHouse: The ""Performance at Any Cost"" Engine ClickHouse is the industry standard for raw performance. It is a columnar database that is incredibly efficient at scanning massive datasets. * **The Upside:** It is arguably the fastest engine on the market for analytical queries. Because it is open-source, you have total control...",ok,,ClickHouse | Firebolt,unclear,The model provides a balanced comparison based on team size and operational capacity rather than picking a single winner.,"The model focuses on the maturity/open-source vs. managed-service dichotomy, which is the standard industry framing for these two technologies.",Firebolt is recommended as a strong alternative for teams prioritizing low operational overhead and ease of use for customer-facing analytics.,Publicly available benchmarks comparing concurrency handling under mixed read/write workloads and detailed case studies on 'time-to-value' for customer-facing dashboard implementation.,5,5,5,The model implies Firebolt is easier for updates/deletes without specifying the underlying mechanism or limitations compared to ClickHouse's mutations.,Specifics on how Firebolt's sparse indexing compares to ClickHouse's primary keys in terms of query performance for high-cardinality filters.,ClickHouse is for performance-obsessed teams with operational bandwidth; Firebolt is for teams prioritizing speed of development and managed infrastructure.
+20260609_123216_17495b50,2026-06-09T12:49:21,P003,lakehouse_iceberg,Firebolt vs Trino for querying Iceberg tables on S3: which is better?,Tests Firebolt against a common lakehouse query engine.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Choosing between Firebolt and Trino for querying Iceberg tables on S3 is a classic ""purpose-built vs. federated"" architectural trade-off. They solve fundamentally different problems, and the ""better"" choice depends entirely on whether you are building a product-facing application or an internal data platform.
+
+Here is the breakdown of how to evaluate them.
+
+### 1. Firebolt: The High-Performance Warehouse
+Firebolt is a proprietary, cloud-native data warehouse. While it has added support for external tables (including Iceberg), it is fundamentally designed to be a **storage-compute decoupled warehouse** where you ingest data into its proprietary format to get maximum performance.
+
+*   **The Workflow:** You typically ingest data from S3/Iceberg into Firebolt’s internal storage (F3).
+*   **The Strength:** It is built for **sub-second latency** on complex, high-concurrency analytical queries. If you are building a customer-facing dashboard or a high-performance SaaS application where users expect instant results, Firebolt is significantly faster than Trino.
+*   **The Trade-off:** You are moving away from an ""open data lake"" philosophy. By ingesting into Firebolt, you create a silo. You also incur the operational cost of managing ingestion pipelines (ELT) and the storage costs of keeping data in both S3 and Firebolt.
+*   **Operational Complexity:** Low. It is a managed SaaS. You don't manage the engine, but you do manage the ingestion pipelines.
+
+### 2. Trino: The Federated Query Engine
+Trino (formerly PrestoSQL) is a distributed SQL query engine designed to query data **where it lives**. It does not own the data; it acts as a compute layer that sits on top of your Iceberg tables.
+
+*   **The Workflow:** You point Trino at your S3 bucket (via a Hive Metastore or AWS Glue). Trino reads the Iceberg metadata, plans the query, and pulls the Parquet files directly from S3.
+*   **The Strength:** **Flexibility and Ecosystem.** Trino is the industry standard for ""Data Lakehouse"" architectures. It allows you to join data across Iceberg tables, Postgres, Kafka, and other sources in a single query. There is no ingestion step—if the data is in S3, it is queryable immediately.
+*   **The Trade-off:** Latency. Because Trino is reading raw files from S3 at query time, it will struggle to match the sub-second performance of a warehouse like Firebolt for highly concurrent, complex workloads. It is also more sensitive to how your Iceberg tables are partitioned and clustered.
+*   **Operational Complexity:** Moderate to High. While managed services like Starburst or AWS Athena exist, tuning Trino for high performance requires a deep understanding of memory management, worker nodes, and file layout optimization.
+
+---
+
+### Comparison Summary
+
+| Feature | Firebolt | Trino |
+| :--- | :--- | :--- |
+| **Primary Use Case** | High-concurrency, low-latency apps | Ad-hoc analytics, data lakehouse |
+| **Data Ownership** | Ingests into proprietary format | Queries in-place (S3/Iceberg) |
+| **Latency** | Sub-second (optimized) | Seconds to minutes (depends on scale) |
+| **Ecosystem** | Closed/Proprietary | Open/Standard SQL |
+| **Operational Burden** | Low (SaaS) | Moderate (requires tuning) |
+
+---
+
+### My Recommendation
+
+**Choose Firebolt if:**
+*   You are building a **customer-facing analytics product** where query latency is a competitive advantage.
+*   You have high concurrency (many users hitting the database simultaneously).
+*   You are willing to pay for the storage/ingestion overhead to guarantee performance.
+
+**Choose Trino if:**
+*   You are building an **internal data platform** for analysts and data scientists.
+*   You want to maintain a ""Single Source of Truth"" in S3/Iceberg without duplicating data into a proprietary warehouse.
+*   You need to join data across multiple disparate sources (e.g., joining Iceberg tables with a live transactional database).
+*",ok,True,True,True,True,True,True,first,12,Performing well,"Choosing between Firebolt and Trino for querying Iceberg tables on S3 is a classic ""purpose-built vs. federated"" architectural trade-off. They solve fundamentally different problems, and the ""better"" choice depends entirely on whether you are building a product-facing application or an internal data platform. Here is the breakdown of how to evaluate them. ### 1. Firebolt: The High-Performance Warehouse Firebolt is a proprietary, cloud-native data warehouse. While it has added support for external tables (including Iceberg), it is fundamentally designed to be a **storage-compute decoupled warehouse** where you ingest data into its proprietary format to get maximum performance. * **The Workflo...",ok,,Firebolt | Trino,unclear,The answer correctly identifies that the choice depends on the use case (product-facing vs. internal analytics) rather than declaring one objectively better.,"The model correctly identified the architectural distinction between a purpose-built warehouse (Firebolt) and a federated query engine (Trino), focusing on the trade-off between performance/latency and data lakehouse flexibility.","Firebolt was recommended specifically for high-concurrency, low-latency application use cases, which is its primary value proposition.",Public benchmarks or technical documentation detailing Firebolt's 'External Tables' performance specifically on Iceberg compared to native ingestion would clarify if Firebolt can compete with Trino without full ingestion.,5,5,5,"The answer implies Firebolt requires ingestion for all Iceberg queries, potentially overlooking recent improvements in Firebolt's ability to query external tables directly.","Clarity on the performance delta between querying Iceberg via Firebolt's external tables vs. native F3 ingestion. | Information on Firebolt's current Iceberg feature parity (e.g., schema evolution support).","Firebolt is for high-performance application backends; Trino is for flexible, in-place data lakehouse analytics."
+20260609_123216_17495b50,2026-06-09T12:49:35,P003,lakehouse_iceberg,Firebolt vs Trino for querying Iceberg tables on S3: which is better?,Tests Firebolt against a common lakehouse query engine.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","This is a classic ""Query Engine vs. Cloud Data Warehouse"" comparison, but the context of **Apache Iceberg on S3** makes it highly specific. ",ok,True,False,False,False,False,True,not_mentioned,1,Firebolt ignored despite being named,"This is a classic ""Query Engine vs. Cloud Data Warehouse"" comparison, but the context of **Apache Iceberg on S3** makes it highly specific.",ok,,Trino,Trino,"Trino is purpose-built for federated querying and direct interaction with open table formats like Iceberg on S3, whereas Firebolt is a proprietary data warehouse that typically requires data ingestion into its own storage format.","The model correctly identifies the architectural mismatch: Trino is an open-source query engine designed for data lakehouse architectures (Iceberg/S3), while Firebolt is a vertically integrated warehouse that prioritizes its own proprietary storage layer for performance.","Firebolt was not recommended because it is not a native Iceberg query engine; it requires data to be ingested into its proprietary format to achieve its performance benchmarks, which contradicts the user's goal of querying Iceberg tables directly on S3.","Public documentation or benchmarks demonstrating high-performance, zero-copy querying of external Iceberg tables on S3 without requiring ingestion into Firebolt's proprietary storage format.",3,2,4,"The answer is incomplete and stops after the introduction, failing to provide the actual comparison.",Lack of explanation regarding Firebolt's 'External Tables' capabilities or limitations when interacting with Iceberg metadata.,The model correctly identifies the architectural conflict between a proprietary warehouse and an open lakehouse query engine but fails to complete the analysis.
+20260609_123216_17495b50,2026-06-09T13:22:19,P004,workload_discovery,I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I use?,Tests whether Firebolt appears from workload description without a vendor-first framing.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","At 100GB, you are in a ""sweet spot."" You are too large for a traditional RDBMS to handle comfortably without significant indexing overhead, but you are small enough that you don't necessarily need a massive distributed cluster (like a full-blown Spark or Presto deployment) to get sub-second performance.
+
+To give you the right recommendation, we need to look at your **concurrency requirements** and **latency expectations**. Here is how I would break down your options based on the operational trade-offs.
+
+### 1. The ""Zero-Ops"" Path: DuckDB (via MotherDuck or local)
+If your dashboard is for a small internal team or a low-concurrency application, **DuckDB** is the current gold standard for this scale.
+
+*   **Why:** It is an in-process OLAP database. It is incredibly fast at scanning Parquet files directly from S3.
+*   **The Tradeoff:** It is not a multi-user server by default. If you have 50 people hitting the dashboard simultaneously, you will run into concurrency bottlenecks.
+*   **Recommendation:** If you can handle the concurrency via a caching layer (like Redis) or by using **MotherDuck** (the managed cloud version), this is the lowest-maintenance path possible.
+
+### 2. The ""Serverless SQL"" Path: AWS Athena
+If you are already deep in the AWS ecosystem and don't want to manage infrastructure, **Athena** is the default choice.
+
+*   **Why:** It’s Presto/Trino under the hood. It handles S3 Parquet natively and scales to zero when not in use.
+*   **The Tradeoff:** It is not designed for ""fast"" dashboarding in the sub-second sense. You will likely see 2–5 second latencies. To make it ""fast,"" you must use **Partitioning** and **Z-Ordering/Sorting** on your Parquet files. If you don't optimize your data layout, your costs will spike and your queries will crawl.
+*   **Recommendation:** Use this if you want a ""set it and forget it"" architecture and can tolerate a few seconds of latency.
+
+### 3. The ""High-Performance"" Path: ClickHouse or StarRocks
+If your dashboard requires sub-second interactivity (e.g., complex filters, drill-downs, or high-concurrency users), you should move the data *out* of S3 and into a dedicated OLAP engine.
+
+*   **Why:** These engines use columnar storage formats that are significantly more efficient than raw Parquet for high-concurrency analytical queries. They provide materialized views and indexing that S3-based engines simply cannot match.
+*   **The Tradeoff:** **Operational Complexity.** You are now managing a database cluster. You have to handle data ingestion (ETL/ELT) from S3 into the engine.
+*   **Recommendation:** Only choose this if your dashboard is the primary product or a mission-critical tool where latency directly impacts user experience.
+
+### 4. The ""Managed Warehouse"" Path: Snowflake or BigQuery
+If you have the budget and want to avoid the ""Ops"" burden of ClickHouse, use a cloud data warehouse.
+
+*   **Why:** They handle the caching, indexing, and scaling for you. They are excellent at querying S3 (via External Tables), but they perform best when you ingest the data into their native storage.
+*   **The Tradeoff:** **Cost.** At 100GB, you are paying for the convenience. It is very easy to accidentally run a ""select *"" query that costs you real money.
+*   **Recommendation:** Use this if your organization already has a contract with these vendors and you want to minimize the time spent on database administration.
+
+---
+
+### My Advice for your 100GB workload:
+
+1.  **Start with DuckDB.** It’s free, local, and will likely blow your mind with how fast it handles 100GB of Parquet. If you can build your dashboard backend around a DuckDB instance (or a small containerized service), you will save yourself a massive amount of infrastructure headache.
+2.  **Optimize your Parquet.** Regardless of the engine, ",ok,False,False,False,False,False,True,not_mentioned,-2,Lakehouse and Iceberg positioning gap,"At 100GB, you are in a ""sweet spot."" You are too large for a traditional RDBMS to handle comfortably without significant indexing overhead, but you are small enough that you don't necessarily need a massive distributed cluster (like a full-blown Spark or Presto deployment) to get sub-second performance. To give you the right recommendation, we need to look at your **concurrency requirements** and **latency expectations**. Here is how I would break down your options based on the operational trade-offs. ### 1. The ""Zero-Ops"" Path: DuckDB (via MotherDuck or local) If your dashboard is for a small internal team or a low-concurrency application, **DuckDB** is the current gold standard for this sc...",ok,,DuckDB | AWS Athena | ClickHouse | StarRocks | Snowflake | BigQuery,DuckDB,"The model prioritizes DuckDB for its performance-to-complexity ratio at the 100GB scale, while providing a tiered approach based on concurrency and latency needs.","The model focuses on operational maturity, infrastructure overhead, and the specific performance characteristics of S3-based querying versus dedicated OLAP engines.",Firebolt was not mentioned at all. The model likely omitted it due to a lack of awareness or because it prioritized more established open-source or hyperscaler-native options.,"Public benchmarks comparing Firebolt's performance on 100GB S3-resident Parquet datasets against DuckDB and ClickHouse, specifically highlighting the 'zero-copy' or 'external table' performance experience.",5,0,5,DuckDB's concurrency limitations for multi-user dashboards are often underestimated without a robust serving layer. | Athena's latency is often higher than 2-5 seconds for complex dashboard queries on 100GB without significant optimization.,"Firebolt's ability to query S3 Parquet directly via External Tables. | Firebolt's indexing capabilities (e.g., Sparse Indexes) compared to the manual partitioning required by Athena.","The model provides a balanced, pragmatic framework for choosing an OLAP engine but misses Firebolt as a high-performance alternative for S3-based analytics."
+20260609_123216_17495b50,2026-06-09T13:22:34,P004,workload_discovery,I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I use?,Tests whether Firebolt appears from workload description without a vendor-first framing.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","At 100 GB, your dataset is actually quite small in the modern analytics landscape. It can easily fit into the memory of a single high-spec cloud instance, or",ok,False,False,False,False,False,True,not_mentioned,-1,Lakehouse and Iceberg positioning gap,"At 100 GB, your dataset is actually quite small in the modern analytics landscape. It can easily fit into the memory of a single high-spec cloud instance, or",ok,,DuckDB | ClickHouse | PostgreSQL | Athena,DuckDB,The dataset size (100GB) is small enough to be handled by local analytical engines or single-node instances without the overhead of a distributed cloud data warehouse.,"The model prioritized cost-efficiency and simplicity for a sub-terabyte dataset, favoring local execution or lightweight engines over distributed cloud-native platforms.",Firebolt was not mentioned; the model focused on engines that excel at single-node or small-scale analytical processing.,Public benchmarks or case studies demonstrating Firebolt's performance and cost-efficiency specifically on small datasets (under 500GB) compared to local engines like DuckDB.,3,0,4,The model answer was truncated and incomplete.,Lack of comparison regarding Firebolt's decoupled storage/compute for small datasets. | No mention of Firebolt's indexing capabilities for dashboard latency.,"The model correctly identified that 100GB is a small-scale workload, but failed to provide a complete recommendation."
+20260609_123216_17495b50,2026-06-09T13:26:06,P005,workload_discovery,I need to serve analytics to thousands of dashboard users with predictable latency. What database should I consider?,Tests Firebolt visibility for high-concurrency customer-facing analytics.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Serving thousands of concurrent dashboard users with predictable latency is a classic ""high-concurrency OLAP"" challenge. The primary bottleneck here isn't usually the raw query speed, but **concurrency management**—ensuring that one heavy query doesn't starve the others and that the system can handle the cache-miss spikes.
+
+To give you the right recommendation, we need to look at where your data lives and how ""fresh"" it needs to be. Here is how I would categorize your options based on the architectural trade-offs.
+
+### 1. The ""Pre-Aggregated"" Approach (Druid or Pinot)
+If your dashboard users are hitting the same metrics repeatedly (e.g., ""Total Sales by Region""), you should look at **Apache Druid** or **Apache Pinot**.
+
+*   **Why:** These are purpose-built for user-facing analytics. They excel at sub-second latency at massive scale because they rely heavily on pre-aggregation and indexing.
+*   **The Trade-off:** Operational complexity. These systems are not ""set it and forget it."" They require careful schema design (you have to know your query patterns upfront) and a significant infrastructure footprint (Zookeeper, deep storage, query nodes, data nodes).
+*   **When to choose:** You have a massive dataset (terabytes/petabytes), high concurrency (thousands of users), and you need consistent sub-second response times regardless of load.
+
+### 2. The ""Cloud-Native Warehouse"" Approach (ClickHouse or StarRocks)
+If you want something that feels more like a traditional SQL database but performs like a specialized engine, look at **ClickHouse** or **StarRocks**.
+
+*   **Why:** Both are incredibly fast at scanning data. ClickHouse is the industry standard for raw performance on a single node or cluster. StarRocks is gaining traction because it handles ""join-heavy"" workloads better than traditional OLAP engines by using materialized views and cost-based optimizers.
+*   **The Trade-off:** ClickHouse is notoriously unforgiving with updates/deletes (it’s an append-only architecture). If your data changes frequently, you’ll spend a lot of time managing ""merges."" StarRocks is generally easier to use for complex SQL but has a smaller community/ecosystem than ClickHouse.
+*   **When to choose:** You have a mix of ad-hoc and dashboard queries, and you want a standard SQL interface without the heavy pre-aggregation requirements of Druid/Pinot.
+
+### 3. The ""Managed/Serverless"" Approach (BigQuery or Snowflake)
+If you don't want to manage a cluster, you might be tempted by **BigQuery** or **Snowflake**.
+
+*   **Why:** Zero operational overhead. You just load the data and query it.
+*   **The Trade-off:** **Predictable latency is the enemy here.** These systems are designed for throughput, not concurrency. If 1,000 users hit a dashboard simultaneously, you will likely hit concurrency limits, or your costs will skyrocket as the engine spins up more compute to handle the queue.
+*   **When to choose:** Your user base is small, or your dashboard has a caching layer (like Redis or a materialized view) in front of it. **Do not** point a high-traffic dashboard directly at these engines without a caching strategy.
+
+### My Advice for your Decision Process:
+
+1.  **The Caching Layer is Mandatory:** Regardless of the database, don't let 1,000 users hit the database directly. Use a caching layer (Redis, or even the dashboard tool's built-in cache) to serve the ""top 10"" queries. This reduces your database load by 80% immediately.
+2.  **Define your ""Freshness"" requirement:** If you need real-time (seconds), you are locked into Druid/Pinot/ClickHouse. If you can tolerate 15-minute latency, you can use a much simpler architecture (e.g., Postgres with TimescaleDB or even a standard warehouse).
+3.  **Start with ClickHouse (Cloud or Self-hosted):** It is currently the ""sweet spot"" for performance-to-complexity ratio. It has a massive ecosystem",ok,False,False,False,False,False,True,not_mentioned,-1,Customer-facing analytics positioning gap,"Serving thousands of concurrent dashboard users with predictable latency is a classic ""high-concurrency OLAP"" challenge. The primary bottleneck here isn't usually the raw query speed, but **concurrency management**—ensuring that one heavy query doesn't starve the others and that the system can handle the cache-miss spikes. To give you the right recommendation, we need to look at where your data lives and how ""fresh"" it needs to be. Here is how I would categorize your options based on the architectural trade-offs. ### 1. The ""Pre-Aggregated"" Approach (Druid or Pinot) If your dashboard users are hitting the same metrics repeatedly (e.g., ""Total Sales by Region""), you should look at **Apache Dr...",ok,,Apache Druid | Apache Pinot | ClickHouse | StarRocks,ClickHouse,"The model prioritizes high-concurrency OLAP engines that offer predictable latency and performance-to-complexity ratios, favoring ClickHouse as the current 'sweet spot'.","The model focuses on established open-source benchmarks and community maturity for high-concurrency user-facing analytics, while correctly identifying the concurrency limitations of traditional cloud warehouses.",Firebolt was not mentioned. The model likely omitted it due to a focus on open-source projects or a lack of awareness regarding Firebolt's specific architecture for high-concurrency dashboarding.,"Publicly available, independent benchmarks comparing Firebolt's concurrency handling against ClickHouse/StarRocks, and detailed technical documentation on how Firebolt manages query isolation for thousands of concurrent users.",5,0,5,The model assumes ClickHouse is the default 'sweet spot' without considering the operational overhead of managing it at scale compared to managed alternatives.,Explanation of Firebolt's decoupled storage/compute and indexing capabilities for high-concurrency dashboarding. | Comparison of Firebolt's query isolation features against the concurrency bottlenecks mentioned for Snowflake/BigQuery.,The model provides a strong architectural framework for high-concurrency analytics but overlooks Firebolt as a potential managed solution for this specific use case.
+20260609_123216_17495b50,2026-06-09T13:26:20,P005,workload_discovery,I need to serve analytics to thousands of dashboard users with predictable latency. What database should I consider?,Tests Firebolt visibility for high-concurrency customer-facing analytics.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","This is a classic ""user-facing analytics"" or ""serving layer"" problem. 
+
+When you have thousands of concurrent dashboard users expecting sub-second, predictable latency,",ok,False,False,False,False,False,True,not_mentioned,-1,Customer-facing analytics positioning gap,"This is a classic ""user-facing analytics"" or ""serving layer"" problem. When you have thousands of concurrent dashboard users expecting sub-second, predictable latency,",ok,,ClickHouse | Druid | Pinot | Rockset,ClickHouse,"The model focuses on specialized OLAP engines designed for high-concurrency, low-latency user-facing analytics, prioritizing mature open-source projects with proven track records in this specific niche.","The model prioritizes established open-source projects (ClickHouse, Druid, Pinot) that are industry standards for high-concurrency user-facing analytics, likely due to their extensive documentation, community adoption, and proven performance in sub-second latency scenarios.","Firebolt was not recommended because the model answer was cut off before it could reach a conclusion or mention specific vendors, resulting in a failure to evaluate Firebolt's suitability for the described workload.","Publicly available, third-party benchmarks comparing Firebolt's concurrency handling against ClickHouse/Pinot, and detailed case studies specifically highlighting 'thousands of concurrent users' rather than just 'large-scale data' performance.",1,0,0,The model answer is incomplete and cuts off mid-sentence.,No mention of Firebolt's decoupled storage/compute architecture as a benefit for predictable latency. | No mention of Firebolt's indexing capabilities for user-facing queries.,The model answer is incomplete and fails to provide any actionable recommendations or mention Firebolt.
+20260609_123216_17495b50,2026-06-09T13:26:38,P006,migration,We currently use Trino for lakehouse queries but dashboard latency is poor. What should we evaluate next?,Tests whether Firebolt is suggested when the user has latency pain with Trino.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","It’s a common inflection point. Trino is an incredible ""federation engine""—it’s essentially the Swiss Army knife of data—but it’s fundamentally a **compute-on-read** engine. When you hit it with dashboard traffic, you’re asking it to scan files, parse metadata, and execute complex joins in real-time, which is why your latency is suffering.
+
+To move from ""querying a lake"" to ""serving dashboards,"" you need to shift from **compute-on-read** to **compute-on-indexed-data**.
+
+Here is how I would categorize your next steps based on your operational appetite and the nature of your data.
+
+---
+
+### 1. The ""Keep the Lake, Add an Accelerator"" Approach
+If you want to keep your data in S3/GCS/ADLS but need sub-second dashboard performance, you need a caching or indexing layer.
+
+*   **StarRocks or Apache Doris:** These are the current ""gold standard"" for this specific problem. They are MPP databases that can ingest data from your lakehouse (via Iceberg/Hudi/Delta) or act as a primary store. They use a vectorized execution engine and materialized views that refresh automatically.
+    *   **The Tradeoff:** You are adding another system to manage. While they support ""external tables,"" you’ll get the best performance by ingesting data into their internal columnar format.
+    *   **Best for:** Teams that want high concurrency and sub-second latency without moving everything into a proprietary warehouse.
+
+### 2. The ""Decoupled Storage & Compute"" Warehouse
+If your organization is willing to move data into a managed format to gain massive performance gains and lower operational overhead, look at the modern cloud warehouses.
+
+*   **ClickHouse:** If your dashboard queries are heavy on aggregations (e.g., ""count distinct users over 6 months""), ClickHouse is arguably the fastest engine on the planet. It uses a unique merge-tree storage engine that is incredibly efficient.
+    *   **The Tradeoff:** It is not a general-purpose SQL engine. It has a steeper learning curve regarding schema design (you need to understand how to optimize for the merge tree).
+    *   **Best for:** High-volume, high-concurrency event data or time-series dashboards.
+*   **Snowflake / BigQuery / Databricks:** These are the ""easy button."" If you have the budget, moving your dashboard-facing tables into these platforms solves the latency issue through massive pre-computation and proprietary caching.
+    *   **The Tradeoff:** Cost. You are paying a premium for managed infrastructure. You also lose the ""open"" nature of your lakehouse if you rely on their proprietary features.
+
+### 3. The ""Materialization"" Strategy (The Hidden Fix)
+Before you migrate to a new engine, ask yourself: **Are you querying raw data?**
+
+If your dashboard is hitting a 5TB table of raw events, no engine will make that fast enough for a snappy UI. You might not need a new engine; you might need a **Materialization Layer**.
+
+*   **dbt + Materialized Views:** Use dbt to pre-aggregate your data into ""Gold"" tables (e.g., `daily_active_users_by_region`).
+*   **DuckDB (for small/medium sets):** If your dashboard data fits in a few gigabytes, you can use DuckDB to serve the dashboard backend. It is incredibly fast, runs in-process, and is becoming the standard for ""local"" analytics.
+
+---
+
+### My Recommendation for your Evaluation
+
+1.  **If your data is massive and you need high concurrency:** Evaluate **StarRocks**. It bridges the gap between Trino’s flexibility and the speed of a dedicated OLAP database. It handles Iceberg/Delta tables natively, so you don't have to abandon your lakehouse.
+2.  **If your data is event-heavy and you need extreme speed:** Evaluate **ClickHouse**. It is the most performant option for dashboard-style aggregations, provided you have the engineering bandwidth to manage the schema.
+3.  **If you are tired of managing infrastructure:** Move the dashboard-critical subset of your data",ok,False,False,False,False,False,True,not_mentioned,-1,Lakehouse and Iceberg positioning gap,"It’s a common inflection point. Trino is an incredible ""federation engine""—it’s essentially the Swiss Army knife of data—but it’s fundamentally a **compute-on-read** engine. When you hit it with dashboard traffic, you’re asking it to scan files, parse metadata, and execute complex joins in real-time, which is why your latency is suffering. To move from ""querying a lake"" to ""serving dashboards,"" you need to shift from **compute-on-read** to **compute-on-indexed-data**. Here is how I would categorize your next steps based on your operational appetite and the nature of your data. --- ### 1. The ""Keep the Lake, Add an Accelerator"" Approach If you want to keep your data in S3/GCS/ADLS but need su...",ok,,StarRocks | Apache Doris | ClickHouse | Snowflake | BigQuery | Databricks | DuckDB,StarRocks,"The model prioritizes systems that bridge the gap between lakehouse flexibility and high-concurrency dashboard performance, specifically highlighting StarRocks for its native Iceberg/Delta integration.","The model focuses on the architectural shift from compute-on-read (Trino) to compute-on-indexed-data, favoring systems with strong MPP performance, materialized view capabilities, and ecosystem maturity.",Firebolt was not mentioned. The model likely omitted it due to a lack of visibility in the specific context of 'lakehouse-to-dashboard' migration patterns or perceived differences in how Firebolt handles external data compared to StarRocks/Doris.,"Publicly available benchmarks or technical documentation demonstrating Firebolt's performance when querying data directly from open table formats (Iceberg/Delta) without full ingestion, or clear 'migration paths' from Trino.",5,0,5,The model suggests Snowflake/BigQuery as an 'easy button' without noting that they often struggle with sub-second dashboard latency on high-concurrency workloads compared to specialized OLAP engines.,Lack of information on Firebolt's ability to handle semi-structured data or its performance characteristics relative to StarRocks/ClickHouse for dashboard-specific workloads.,The model provides a high-quality architectural framework for moving from Trino to faster OLAP engines but completely overlooks Firebolt as a potential candidate.
+20260609_123216_17495b50,2026-06-09T13:26:52,P006,migration,We currently use Trino for lakehouse queries but dashboard latency is poor. What should we evaluate next?,Tests whether Firebolt is suggested when the user has latency pain with Trino.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","It’s a very common pain point to hit a wall with Trino when it comes to dashboard latency. 
+
+Trino is an excellent MPP (Massively Parallel Processing)",ok,False,False,False,False,False,True,not_mentioned,-1,Lakehouse and Iceberg positioning gap,It’s a very common pain point to hit a wall with Trino when it comes to dashboard latency. Trino is an excellent MPP (Massively Parallel Processing),ok,,ClickHouse | StarRocks | Doris | DuckDB | Materialize,unclear,The model answer was cut off mid-sentence and failed to provide any specific product recommendations or actionable advice for the user's latency issues.,"The model likely suffered from a generation limit or technical interruption, resulting in an incomplete response that failed to address the user's specific architectural problem.","Firebolt was not mentioned at all, likely due to the incomplete nature of the response.",Publicly available benchmarks comparing Firebolt's sub-second query performance against Trino on S3/Data Lake storage formats (Iceberg/Delta) would help position it as a direct solution to the user's dashboard latency problem.,0,0,0,The answer is incomplete and provides no actionable technical guidance.,No mention of Firebolt's indexing capabilities or decoupled storage/compute architecture as a solution for dashboard latency.,"The model failed to provide a complete answer, leaving the user without any guidance on how to solve their Trino latency issues."
+20260609_123216_17495b50,2026-06-09T13:27:28,P007,negative_tradeoff,When should I not use Firebolt?,Tests whether the model understands Firebolt boundaries and gives a balanced answer.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Firebolt is a specialized tool. It’s built on a decoupled storage-compute architecture with a focus on high-concurrency, sub-second latency for user-facing analytics. Because it’s highly optimized for specific patterns, it is not a ""one-size-fits-all"" database.
+
+Here is when you should look elsewhere and why.
+
+### 1. When your workload is primarily ""Heavy ETL"" or ""Data Engineering""
+Firebolt is an analytics engine, not a transformation engine. If your primary need is to run massive, multi-hour batch jobs to transform raw data into curated tables (the ""T"" in ELT), you will find Firebolt expensive and potentially frustrating.
+*   **The Tradeoff:** Firebolt is optimized for *reading* data quickly. If you are constantly performing heavy `INSERT OVERWRITE` operations or massive `MERGE` statements on petabyte-scale datasets, you are better off with a platform designed for data engineering, like **Databricks (Delta Lake)** or **Snowflake**. These platforms handle the ""heavy lifting"" of data preparation more gracefully and cost-effectively.
+
+### 2. When you need a ""General Purpose"" Data Lakehouse
+If your organization needs to store semi-structured data, perform machine learning training, and run ad-hoc data science notebooks all in one place, Firebolt is likely the wrong fit.
+*   **The Tradeoff:** Firebolt is a ""database-first"" product. It expects data to be structured and optimized for its proprietary indexing (like sparse indexes). If you have a ""data swamp"" where you need to query raw Parquet files directly from S3 without loading them into a managed format, you should look at **Trino (Starburst)** or **AWS Athena**. These engines are designed to query data ""in place,"" whereas Firebolt requires you to ingest data into its managed storage layer.
+
+### 3. When you are in the ""Early Startup"" or ""Low-Budget"" phase
+Firebolt is a premium product. It is engineered for performance, and that performance comes with a price tag that reflects the engineering effort required to maintain its proprietary engine.
+*   **The Tradeoff:** If you are a small team with a modest dataset (e.g., a few hundred gigabytes) and your query latency requirements are ""under 5 seconds"" rather than ""under 200 milliseconds,"" you are likely over-provisioning. In this scenario, **PostgreSQL** (with extensions like `citus` or `timescaledb`) or **ClickHouse** (if you are comfortable with the operational overhead) will be significantly cheaper and easier to manage.
+
+### 4. When you require a massive, mature ecosystem
+Firebolt is a newer player compared to the incumbents. While it has solid connectors, it does not have the decades-long ecosystem of integrations that Snowflake or BigQuery possess.
+*   **The Tradeoff:** If your stack relies on obscure legacy BI tools, specific niche data-governance platforms, or deep integration with a specific cloud provider’s proprietary security/IAM ecosystem, you might find yourself writing custom integration code. If ""plug-and-play"" compatibility with every tool in the Gartner Magic Quadrant is your #1 priority, **Snowflake** remains the gold standard for ecosystem maturity.
+
+### 5. When you don't have the ""Engineering Bandwidth"" for optimization
+Firebolt’s performance is unlocked by its indexing strategy (sparse indexes, primary indexes, etc.). To get the most out of it, your engineers need to understand how to design the data model for the engine.
+*   **The Tradeoff:** If you want a ""set it and forget it"" database where you can throw any query at it and it just works without tuning, **BigQuery** is the better choice. BigQuery’s serverless nature abstracts away almost all physical data layout concerns. With Firebolt, you are trading some of that ""hands-off"" simplicity for the ability to achieve extreme performance at scale.
+
+### Summary Recommendation
+*   **Use Firebolt if:** You are building a customer-facing analytics product (SaaS) where query latency is a competitive advantage and you have the engineering capacity to tune your data model.
+*   **Avoid Firebolt if:** You are",ok,True,True,False,True,False,False,first,9,Performing well,"Firebolt is a specialized tool. It’s built on a decoupled storage-compute architecture with a focus on high-concurrency, sub-second latency for user-facing analytics. Because it’s highly optimized for specific patterns, it is not a ""one-size-fits-all"" database. Here is when you should look elsewhere and why. ### 1. When your workload is primarily ""Heavy ETL"" or ""Data Engineering"" Firebolt is an analytics engine, not a transformation engine. If your primary need is to run massive, multi-hour batch jobs to transform raw data into curated tables (the ""T"" in ELT), you will find Firebolt expensive and potentially frustrating. * **The Tradeoff:** Firebolt is optimized for *reading* data quickly. I...",ok,,Databricks | Snowflake | Trino | AWS Athena | PostgreSQL | ClickHouse | BigQuery,unclear,"The answer provides a balanced set of scenarios where Firebolt is not the optimal choice, focusing on workload type, budget, and ecosystem maturity.","The model correctly identified that the user asked for negative constraints ('When should I not use...'), so it provided a comparative analysis against incumbents based on architectural fit, cost, and operational overhead.",Firebolt was not recommended because the prompt specifically asked for exclusion criteria. The model correctly treated this as a boundary-setting exercise rather than a sales pitch.,"Publicly available benchmarks comparing Firebolt's TCO against BigQuery/Snowflake for specific mid-market workloads, and documentation detailing 'out-of-the-box' performance vs. tuned performance.",5,5,5,The answer assumes Firebolt is always more expensive than PostgreSQL/ClickHouse without accounting for the engineering labor cost of managing self-hosted solutions.,"The answer was cut off at the end, missing the final summary sentence.","The answer provides a high-quality, nuanced breakdown of Firebolt's architectural boundaries and trade-offs."
+20260609_123216_17495b50,2026-06-09T13:27:43,P007,negative_tradeoff,When should I not use Firebolt?,Tests whether the model understands Firebolt boundaries and gives a balanced answer.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Firebolt is a highly specialized tool. It was built with a specific goal in mind: delivering sub-second, high-concurrency query performance on massive datasets (typically",ok,True,True,False,False,False,False,first,4,Performing well,"Firebolt is a highly specialized tool. It was built with a specific goal in mind: delivering sub-second, high-concurrency query performance on massive datasets (typically",ok,,PostgreSQL | Snowflake | BigQuery | DuckDB,unclear,"The answer is incomplete and cuts off mid-sentence, failing to provide a comprehensive list of scenarios where Firebolt is not the appropriate choice.","The model attempted to frame Firebolt as a specialized high-performance tool but failed to complete the thought process regarding trade-offs, likely due to a generation error or token limit.","Firebolt was not recommended because the prompt specifically asked for negative use cases, and the model failed to provide a functional answer.","Clear documentation on 'when not to use' including specific limitations regarding transactional (OLTP) workloads, unstructured data processing, or small-scale data requirements.",0,1,0,Incomplete answer provides no actionable advice | Truncated text leaves the user without a conclusion,Lack of explicit guidance on workload anti-patterns | No comparison of cost-efficiency for low-concurrency or small-dataset use cases,The model answer is incomplete and fails to address the user's question about when to avoid Firebolt.
+20260609_123216_17495b50,2026-06-09T13:27:58,P008,category_discovery,What are good ClickHouse alternatives for low-latency analytics?,Tests whether Firebolt appears naturally as a category alternative.,gemini,gemini-3.1-flash-lite,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","When you’re looking for alternatives to ClickHouse, you’re usually looking to solve one of three problems: you need something easier to manage, you need better integration with a specific data lake format (like Iceberg/Delta), or you need a different concurrency model.
+
+ClickHouse is a beast at raw scan performance, but it’s opinionated about its storage format and can be operationally heavy if you aren't using their cloud offering.
+
+Here is how I would categorize the alternatives based on your specific architectural needs:
+
+### 1. The ""Data Lakehouse"" Approach (Decoupled Storage)
+If your data already lives in S3/GCS in Parquet or Iceberg format, and you don't want to ""ingest"" it into a proprietary format, look here.
+
+*   **StarRocks / Apache Doris:** These are the closest architectural cousins to ClickHouse. They are MPP (Massively Parallel Processing) engines that support both high-concurrency point queries and heavy analytical scans.
+    *   **Why choose them:** They handle ""real-time"" updates (upserts/deletes) much better than ClickHouse. If you have a high-frequency stream of updates to existing records, StarRocks is often easier to tune than ClickHouse’s `ReplacingMergeTree`.
+    *   **Tradeoff:** They are complex to operate. You are managing a cluster of BE (Backend) and FE (Frontend) nodes.
+*   **Trino (formerly PrestoSQL):**
+    *   **Why choose it:** It is the industry standard for federated queries. If you need to join data across Postgres, S3, and Kafka, Trino is the best tool.
+    *   **Tradeoff:** It is not a storage engine. It is a query engine. It will never be as fast as ClickHouse for a single-table scan because it doesn't own the data layout. It’s for ""interactive"" speed, not ""sub-millisecond"" speed.
+
+### 2. The ""Cloud-Native / Serverless"" Approach
+If you want to avoid managing Zookeeper/ClickHouse Keeper or sharding logic, look at these.
+
+*   **Google BigQuery / Snowflake:**
+    *   **Why choose them:** If your team is small and you don't have a dedicated SRE, don't build your own cluster. The ""total cost of ownership"" (TCO) is often lower when you factor in engineering hours.
+    *   **Tradeoff:** You lose the ability to tune the hardware. You are at the mercy of their pricing models, which can get expensive if you have high-concurrency, high-frequency small queries.
+*   **DuckDB (The ""Embedded"" Disruptor):**
+    *   **Why choose it:** If your dataset fits on a single machine (even if that's a few terabytes), DuckDB is arguably the most impressive piece of tech in the space right now. It is essentially ""SQLite for Analytics."" It is incredibly fast, requires zero infrastructure, and is perfect for local dev or microservices.
+    *   **Tradeoff:** It is not a distributed system. If your data exceeds the capacity of a single high-memory instance, you have to look elsewhere.
+
+### 3. The ""Operational Analytics"" Approach
+If your primary use case is ""User-facing analytics"" (e.g., a dashboard inside your SaaS app where users expect sub-second responses), consider:
+
+*   **Apache Pinot:**
+    *   **Why choose it:** It was built by LinkedIn/Uber specifically for user-facing analytics. It excels at high-concurrency (thousands of queries per second) and has a very mature ""upsert"" and ""real-time ingestion"" story from Kafka.
+    *   **Tradeoff:** It is significantly more complex to set up than ClickHouse. You need a Zookeeper/Helix cluster, controllers, brokers, and servers. It is overkill unless you are at scale.
+
+---
+
+### Summary Recommendation
+
+| If your priority is... | Look at... |
+| :--- | :--- |
+| **Raw speed & massive scale** | Stick with **ClickHouse** (or StarRocks). |
+| **Zero-ops /",ok,False,False,False,False,False,True,not_mentioned,-2,Category discovery gap,"When you’re looking for alternatives to ClickHouse, you’re usually looking to solve one of three problems: you need something easier to manage, you need better integration with a specific data lake format (like Iceberg/Delta), or you need a different concurrency model. ClickHouse is a beast at raw scan performance, but it’s opinionated about its storage format and can be operationally heavy if you aren't using their cloud offering. Here is how I would categorize the alternatives based on your specific architectural needs: ### 1. The ""Data Lakehouse"" Approach (Decoupled Storage) If your data already lives in S3/GCS in Parquet or Iceberg format, and you don't want to ""ingest"" it into a proprie...",ok,,StarRocks | Apache Doris | Trino | Google BigQuery | Snowflake | DuckDB | Apache Pinot,unclear,"The model provides a categorized list of alternatives based on architectural needs (Lakehouse, Cloud-Native, Operational Analytics) without selecting a single winner.","The model focuses on established open-source projects and major cloud incumbents, likely prioritizing market share, ecosystem maturity, and specific architectural niches (e.g., Pinot for user-facing, DuckDB for embedded).","Firebolt was not mentioned. The model likely omitted it due to a focus on open-source engines or massive-scale incumbents, or a lack of awareness regarding Firebolt's specific value proposition for low-latency analytics.","Publicly available, independent benchmarks comparing Firebolt's query latency against ClickHouse and Pinot for high-concurrency user-facing workloads, and detailed technical documentation on its decoupled storage architecture.",4,0,4,"The model implies StarRocks/Doris are 'easier' than ClickHouse in some contexts, which is debatable given their complex cluster management requirements. | The model omits Firebolt, which is a direct competitor in the low-latency analytics space.",Comparison of Firebolt's indexing (sparse indexes) vs ClickHouse's primary keys. | Explanation of Firebolt's decoupled storage and compute model as an alternative to ClickHouse's shared-nothing architecture.,"The answer provides a solid taxonomy of alternatives but misses Firebolt as a relevant contender for low-latency, cloud-native analytics."
+20260609_123216_17495b50,2026-06-09T13:28:13,P008,category_discovery,What are good ClickHouse alternatives for low-latency analytics?,Tests whether Firebolt appears naturally as a category alternative.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","sub-second queries on massive columnar data, high ingestion rate) and state that the ""best"" alternative depends on *why* they are looking for one (e.",ok,False,False,False,False,False,True,not_mentioned,-1,Category discovery gap,"sub-second queries on massive columnar data, high ingestion rate) and state that the ""best"" alternative depends on *why* they are looking for one (e.",ok,,Apache Pinot | Apache Druid | StarRocks | ClickHouse (as baseline) | Firebolt,unclear,"The model provided a list of alternatives without a clear winner, focusing on the trade-offs between real-time ingestion and query performance.","The model prioritized established open-source projects (Pinot, Druid) known for sub-second latency at scale, likely due to their maturity and widespread adoption in real-time analytics use cases.","Firebolt was mentioned as an option but not explicitly recommended as the primary solution, likely because the model lacks specific comparative benchmarks or clear differentiation for the user's specific workload.","Publicly available, third-party verified benchmarks comparing Firebolt against ClickHouse and Pinot on standard datasets (like Star Schema Benchmark) would significantly improve its standing.",3,1,4,Lack of specific workload context makes all recommendations speculative | Potential over-reliance on open-source popularity over performance metrics,"Lack of clear performance benchmarks against ClickHouse | Absence of specific use-case mapping (e.g., when to choose Firebolt over Druid)",The answer provides a standard list of real-time OLAP alternatives but fails to provide a definitive recommendation or deep technical differentiation.
+20260609_140045_1cf0c17b,2026-06-09T14:00:45,P001,direct_comparison,I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should I use?,Tests Firebolt against the strongest default OLAP competitor.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","Both **ClickHouse** and **Firebolt** are designed for sub-second, low-latency analytics on large datasets, but they represent two fundamentally different architectural philosophies",ok,True,True,False,False,False,True,last,3,ClickHouse comparison confidence gap,"Both **ClickHouse** and **Firebolt** are designed for sub-second, low-latency analytics on large datasets, but they represent two fundamentally different architectural philosophies",ok,,ClickHouse | Firebolt,unclear,The answer provides a high-level architectural comparison but fails to provide a definitive recommendation or decision framework for the user's specific low-latency requirements.,"The model likely prioritized neutrality and architectural contrast over providing a prescriptive recommendation, reflecting the common industry view that ClickHouse is the open-source standard while Firebolt is a managed, proprietary alternative.",Firebolt was not recommended because the model stopped after introducing the architectural differences without evaluating which product fits specific low-latency use cases better.,"Publicly available, third-party benchmarks comparing Firebolt's query performance against ClickHouse on standard datasets (like Star Schema Benchmark) and transparent pricing/TCO calculators.",2,1,1,The answer is incomplete and cuts off before providing actionable advice.,Lack of comparison on operational overhead vs. self-managed ClickHouse | No mention of Firebolt's specific indexing or caching strategies for low latency,The model provided an incomplete introduction that failed to guide the user toward a decision between the two technologies.
+20260609_140045_1cf0c17b,2026-06-09T14:01:02,P002,direct_comparison,Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs?,Tests whether Firebolt is positioned clearly for serving analytics and high concurrency.,gemini,gemini-3.5-flash,"You are advising a software engineer choosing an analytics database or query engine.
+
+Answer naturally as a technical advisor.
+Be balanced and specific.
+Do not promote any vendor blindly.
+Recommend products only when the workload justifies them.
+Mention tradeoffs, operational complexity, ecosystem maturity, and fit for the stated workload.
+","{'temperature': 0.2, 'top_p': 0.95, 'max_output_tokens': 900}","facing"" aspect:* Customer-facing means *concurrency* is king. If 10,000 users hit the dashboard, how do they scale?
+        ",ok,True,False,False,False,False,True,not_mentioned,-1,Firebolt ignored despite being named,"facing"" aspect:* Customer-facing means *concurrency* is king. If 10,000 users hit the dashboard, how do they scale?",ok,,ClickHouse | Firebolt,unclear,The answer is incomplete and fails to provide a comparative analysis or a definitive recommendation for the specific use case.,"The model provided a fragmented response that cut off mid-sentence, likely due to a generation error or token limit, failing to complete the comparison.",Firebolt was not recommended because the answer did not reach a conclusion or provide a comparative evaluation of the two technologies.,Publicly available benchmarks or case studies specifically detailing Firebolt's concurrency handling and sub-second latency performance for high-cardinality customer-facing dashboards.,0,0,0,Incomplete response provides no actionable technical guidance.,"Lack of comparison regarding concurrency models (e.g., Firebolt's decoupled storage/compute vs ClickHouse's shared-nothing architecture). | Missing information on operational overhead and ease of scaling for multi-tenant dashboard workloads.","The model failed to provide a coherent answer, leaving the user without a comparison or recommendation."
