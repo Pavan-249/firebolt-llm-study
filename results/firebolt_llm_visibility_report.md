@@ -12,24 +12,24 @@ The run produced 16 scored answers across 8 prompts and 2 models. The result sho
 
 ## 3. Key findings
 
-- Firebolt was mentioned in 50.0% of scored answers. It was recommended in 42.9% of recommendation-applicable answers. The average visibility score was 3.9 / 13.
-- How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in 100.0% of answers. When the prompt only described the workload, the rate was 0.0%.
-- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was 0.0%.
+- Firebolt was mentioned in 50.0% of scored answers. In recommendation-applicable prompts, Firebolt was put forward as a fit in 42.9% of answers. The average visibility score was 3.9 / 13.
+- How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in 100.0% of answers. When the prompt described the workload without naming Firebolt, no model surfaced Firebolt in this small prompt set.
+- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was0.0%.
 
 | Metric | Result | How to read it |
 | --- | --- | --- |
 | Scored answers | 16 | 8 prompts across 2 models with scored answers |
 | Firebolt mention rate | 50.0% | Answer contains the word Firebolt |
-| Firebolt recommendation rate | 42.9% | Share of answers that put Firebolt forward as a fit. Counted over 14 answers where a recommendation applies (the 'when not to use Firebolt' prompt is left out) |
-| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: weak |
+| Firebolt fit-recommendation rate | 42.9% | Share of recommendation-applicable answers where Firebolt was put forward as a fit for at least one workload branch. The 'when not to use Firebolt' prompt is excluded. Counted over 14 answers. |
+| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: low unaided visibility |
 
 ## 4. Experiment setup
 
-The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. Only rows with status ok and non-empty answer text are scored.
+The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. Only rows from the selected run with `status=ok`, `capture_status=complete`, normal finish reason, and non-empty answer text are included in scored results.
 
 Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are repeatable. A recommendation is counted only when the answer puts Firebolt forward as a fit, not when it merely names it. The judge model writes only the explanation and factual-risk notes.
 
-One prompt, P007, asks when not to use Firebolt. A good answer explains where Firebolt does not fit, so recommending it is not the goal. P007 still counts toward the mention rate, but it is left out of the recommendation rate so a correct 'do not use it here' answer is not scored as a miss.
+One prompt, P007, asks when not to use Firebolt. A good answer explains where Firebolt does not fit, so recommending it is not the goal. P007 still counts toward the mention rate, but it is left out of the fit-recommendation rate so a correct 'do not use it here' answer is not scored as a miss.
 
 The visibility score is `V = 2M + 3R + K + E - P`. The formula is used for comparison within this run. It is not a market-share score or a product score.
 
@@ -87,22 +87,22 @@ The run used Gemini Flash-tier models because they are plausible default or low-
 
 ### Run health
 
-No model validation or run failures were recorded.
+Run validation passed. The selected run produced the expected 16 rows across 8 prompts and 2 models. All scored rows had `status=ok`, `capture_status=complete`, `finish_reason=STOP`, and complete answer text.
 
 ## 7. Results
 
-This section reports measurements only. Interpretation starts in section 10.
+This section reports measurements over validated rows only. Interpretation starts in section 10.
 
 | Metric | Result | Definition |
 | --- | --- | --- |
 | Scored answers | 16 | 8 prompts across 2 models with scored answers |
 | Firebolt mention rate | 50.0% | Answer contains the word Firebolt |
-| Firebolt recommendation rate | 42.9% | Share of answers that put Firebolt forward as a fit. Counted over 14 answers where a recommendation applies (the 'when not to use Firebolt' prompt is left out) |
-| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: weak |
+| Firebolt fit-recommendation rate | 42.9% | Share of recommendation-applicable answers where Firebolt was put forward as a fit for at least one workload branch. The 'when not to use Firebolt' prompt is excluded. Counted over 14 answers. |
+| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: low unaided visibility |
 
 ### By prompt
 
-| Prompt ID | Framing | Category | Prompt | Scored answers | Firebolt mentioned | Firebolt recommended | Average score | Primary recommendation observed |
+| Prompt ID | Framing | Category | Prompt | Scored answers | Firebolt mentioned | Firebolt recommended | Average score | Judge-observed primary recommendation |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P001 | Named | direct_comparison | I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should... | 2 | Yes (2/2) | Yes (2/2) | 11.00 / 13 | unclear |
 | P002 | Named | direct_comparison | Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs? | 2 | Yes (2/2) | Yes (2/2) | 10.00 / 13 | unclear |
@@ -115,14 +115,14 @@ This section reports measurements only. Interpretation starts in section 10.
 
 ### By model
 
-| Model | Scored answers | Mention rate | Recommendation rate | Average visibility score | Average Firebolt explanation |
+| Model | Scored answers | Mention rate | Fit-recommendation rate | Average visibility score | Average Firebolt explanation |
 | --- | --- | --- | --- | --- | --- |
 | gemini-3.1-flash-lite | 8 | 50.0% | 42.9% | 4.62 | 2.38 |
 | gemini-3.5-flash | 8 | 50.0% | 42.9% | 4.12 | 2.50 |
 
 ### By prompt category
 
-| Category | Scored answers | Mention rate | Recommendation rate | Average visibility score |
+| Category | Scored answers | Mention rate | Fit-recommendation rate | Average visibility score |
 | --- | --- | --- | --- | --- |
 | lakehouse_iceberg | 2 | 100.0% | 100.0% | 11.50 |
 | direct_comparison | 4 | 100.0% | 100.0% | 10.50 |
@@ -133,7 +133,7 @@ This section reports measurements only. Interpretation starts in section 10.
 
 ### Full response detail
 
-One entry per model answer, with the full prompt, the complete model response, the deterministic checks, and the judge notes. This is the single source of truth behind every number above.
+One entry per model answer, with the full prompt, the complete model response, the deterministic checks, and the judge notes. These raw model responses are included for reproducibility. They are the source for the scoring checks above, but product claims inside model answers should be read as model-generated text, not independently verified product documentation.
 
 #### P001 - gemini-3.1-flash-lite (Named) - score 12.0 / 13
 
@@ -1394,12 +1394,12 @@ One entry per model answer, with the full prompt, the complete model response, t
 
 ## 8. Named vs unnamed prompt behavior
 
-| Prompt framing | Prompts | Scored answers | Recommendation-applicable answers | Mention rate | Recommendation rate |
+| Prompt framing | Prompts | Scored answers | Recommendation-applicable answers | Mention rate | Fit-recommendation rate |
 | --- | --- | --- | --- | --- | --- |
 | Firebolt named in prompt | 4 | 8 | 6 | 100.0% | 100.0% |
 | Workload only, Firebolt not named | 4 | 8 | 8 | 0.0% | 0.0% |
 
-Named prompts produced 100.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Recommendation rates exclude negative_tradeoff rows.
+Named prompts produced 100.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Fit-recommendation rates exclude negative_tradeoff rows.
 
 This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the basis for interpreting why the split happened.
 
@@ -1407,7 +1407,7 @@ This section is still a result, not an explanation. The gap rows in sections 9 a
 
 Each row below is the weakest scored answer for a prompt. It is included to show the failure mode, not to prescribe content. The evidence-gap column should be treated as a hypothesis for review.
 
-| Prompt ID | Model | Primary recommendation observed | Firebolt mentioned | Firebolt recommended | Firebolt rank | Visibility score | Evidence gap |
+| Prompt ID | Model | Judge-observed primary recommendation | Firebolt mentioned | Firebolt recommended | Firebolt rank | Visibility score | Evidence gap |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | P005 | gemini-3.5-flash | ClickHouse | No | No | not_mentioned | -2.0 / 13 | Evidence for high-concurrency dashboard latency and predictability. |
 | P006 | gemini-3.1-flash-lite | ClickHouse | No | No | not_mentioned | -2.0 / 13 | Evidence for improving dashboard latency when Trino is already used over lakehouse data. |
@@ -1418,7 +1418,7 @@ Each row below is the weakest scored answer for a prompt. It is included to show
 
 The gaps below are inferred from rows where Firebolt was absent, weak, or mentioned without a recommendation. They are not product findings. They indicate what public evidence the model appeared not to retrieve.
 
-| Content gap | Prompt IDs | Scored answers | Mention rate | Recommendation rate | Average visibility score | How to use this row |
+| Content gap | Prompt IDs | Scored answers | Mention rate | Fit-recommendation rate | Average visibility score | How to use this row |
 | --- | --- | --- | --- | --- | --- | --- |
 | Lakehouse and Iceberg positioning gap | P004, P006 | 4 | 0.0% | 0.0% | -1.50 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
 | Customer-facing analytics positioning gap | P005 | 2 | 0.0% | 0.0% | -1.50 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
@@ -1437,7 +1437,7 @@ These actions are tied to the measurements above. They do not assume that every 
 | --- | --- | --- |
 | Workload-only mention rate | 0.0% | Use the same P004, P005, P006, and P008 prompts. |
 | Overall mention rate | 50.0% | Compare against the same 8-prompt set. |
-| Overall recommendation rate | 42.9% | Exclude negative_tradeoff rows from this denominator. |
+| Overall fit-recommendation rate | 42.9% | Exclude negative_tradeoff rows from this denominator. |
 
 ## 12. Limitations
 

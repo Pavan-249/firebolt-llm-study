@@ -167,6 +167,17 @@ def score_band(score):
     return "absent"
 
 
+def visibility_band(score):
+    # Framed as model visibility, not product quality.
+    if score >= 7:
+        return "high unaided visibility"
+    if score >= 4:
+        return "moderate unaided visibility"
+    if score >= 1:
+        return "low unaided visibility"
+    return "no unaided visibility"
+
+
 def field(row, name, fallback=""):
     value = clean_text(row.get(name, ""))
     return value if value else fallback
@@ -332,6 +343,15 @@ unnamed_mention = safe_mean(unnamed["firebolt_mentioned"]) if len(unnamed) else 
 unnamed_recommendation = recommendation_mean(unnamed)
 named_prompts = named["prompt_id"].nunique() if len(named) else 0
 unnamed_prompts = unnamed["prompt_id"].nunique() if len(unnamed) else 0
+
+# Softer, non-overclaiming sentence for the workload-only result. When no
+# unnamed answer surfaced Firebolt, say so plainly rather than quoting 0.0%.
+if len(unnamed) and unnamed_mention == 0:
+    unnamed_sentence = ("When the prompt described the workload without naming Firebolt, no model surfaced "
+                        "Firebolt in this small prompt set.")
+else:
+    unnamed_sentence = ("When the prompt described the workload without naming Firebolt, the mention rate was "
+                        f"{pct(unnamed_mention)}.")
 
 
 def framing(prompt):
@@ -639,18 +659,18 @@ def metric_records():
             "evidence": "Answer contains the word Firebolt",
         },
         {
-            "metric": "Firebolt recommendation rate",
+            "metric": "Firebolt fit-recommendation rate",
             "result": pct(recommendation_rate),
             "evidence": (
-                "Share of answers that put Firebolt forward as a fit. "
-                f"Counted over {recommendation_applicable_answers} answers where a recommendation applies "
-                "(the 'when not to use Firebolt' prompt is left out)"
+                "Share of recommendation-applicable answers where Firebolt was put forward as a fit for at "
+                "least one workload branch. The 'when not to use Firebolt' prompt is excluded. "
+                f"Counted over {recommendation_applicable_answers} answers."
             ),
         },
         {
             "metric": "Average visibility score",
             "result": f"{num(avg_visibility, 1)} / {SCORE_MAX}",
-            "evidence": f"Excludes the 'when not to use Firebolt' prompt. Current band: {score_band(avg_visibility)}",
+            "evidence": f"Excludes the 'when not to use Firebolt' prompt. Current band: {visibility_band(avg_visibility)}",
         },
     ]
 
@@ -689,7 +709,7 @@ def baseline_records():
             "next_run_check": "Compare against the same 8-prompt set.",
         },
         {
-            "metric": "Overall recommendation rate",
+            "metric": "Overall fit-recommendation rate",
             "current_run": pct(recommendation_rate),
             "next_run_check": "Exclude negative_tradeoff rows from this denominator.",
         },
@@ -750,7 +770,7 @@ def weak_prompt_html():
     return table_html(weak_prompt_records(), [
         ("prompt_id", "Prompt ID"),
         ("model", "Model"),
-        ("primary_recommendation", "Primary recommendation observed"),
+        ("primary_recommendation", "Judge-observed primary recommendation"),
         ("firebolt_mentioned", "Firebolt mentioned"),
         ("firebolt_recommended", "Firebolt recommended"),
         ("firebolt_rank", "Firebolt rank"),
@@ -944,17 +964,16 @@ def build_html():
     parts.append("<h2>3. Key findings</h2>")
     parts.append("<ul>")
     parts.append(
-        f"<li>Firebolt was mentioned in {pct(mention_rate)} of scored answers. It was recommended in "
-        f"{pct(recommendation_rate)} of recommendation-applicable answers. The average visibility score was "
-        f"{num(avg_visibility, 1)} / {SCORE_MAX}.</li>"
+        f"<li>Firebolt was mentioned in {pct(mention_rate)} of scored answers. In recommendation-applicable "
+        f"prompts, Firebolt was put forward as a fit in {pct(recommendation_rate)} of answers. The average "
+        f"visibility score was {num(avg_visibility, 1)} / {SCORE_MAX}.</li>"
     )
     parts.append(
         f"<li>How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it "
-        f"in {pct(named_mention)} of answers. When the prompt only described the workload, the rate was "
-        f"{pct(unnamed_mention)}.</li>"
+        f"in {pct(named_mention)} of answers. {unnamed_sentence}</li>"
     )
     parts.append(
-        f"<li>Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was "
+        f"<li>Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was"
         f"{pct(unnamed_recommendation)}.</li>"
     )
     if failed_model_rows:
@@ -977,7 +996,8 @@ def build_html():
     parts.append("<h2>4. Experiment setup</h2>")
     parts.append(
         "<p>The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. "
-        "Only rows with status ok and non-empty answer text are scored.</p>"
+        "Only rows from the selected run with <code>status=ok</code>, <code>capture_status=complete</code>, "
+        "normal finish reason, and non-empty answer text are included in scored results.</p>"
     )
     parts.append(
         "<p>Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
@@ -988,7 +1008,7 @@ def build_html():
     parts.append(
         "<p>One prompt, P007, asks when not to use Firebolt. A good answer here explains where Firebolt does not "
         "fit, so recommending Firebolt is not the goal. P007 still counts toward the mention rate, but it is left "
-        "out of the recommendation rate so a correct 'do not use it here' answer is not scored as a miss.</p>"
+        "out of the fit-recommendation rate so a correct 'do not use it here' answer is not scored as a miss.</p>"
     )
     parts.append(
         "<p>The visibility score is V = 2M + 3R + K + E - P. The formula is used for comparison within this run. "
@@ -1051,10 +1071,14 @@ def build_html():
             ("detail", "Detail"),
         ]))
     else:
-        parts.append("<p>No model validation or run failures were recorded.</p>")
+        parts.append(
+            f"<p>Run validation passed. The selected run produced the expected {total_answers} rows across "
+            f"{unique_prompts} prompts and {model_count} models. All scored rows had <code>status=ok</code>, "
+            f"<code>capture_status=complete</code>, <code>finish_reason=STOP</code>, and complete answer text.</p>"
+        )
 
     parts.append("<h2>7. Results</h2>")
-    parts.append("<p>This section reports measurements only. Interpretation starts in section 10.</p>")
+    parts.append("<p>This section reports measurements over validated rows only. Interpretation starts in section 10.</p>")
     parts.append(table_html(metric_records(), [
         ("metric", "Metric"),
         ("result", "Result"),
@@ -1070,14 +1094,14 @@ def build_html():
         ("firebolt_mentioned", "Firebolt mentioned"),
         ("firebolt_recommended", "Firebolt recommended"),
         ("average_visibility_score", "Average score"),
-        ("primary_recommendation", "Primary recommendation observed"),
+        ("primary_recommendation", "Judge-observed primary recommendation"),
     ]))
     parts.append("<h3>By model</h3>")
     parts.append(table_html(by_model, [
         ("model", "Model"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
         ("average_firebolt_explanation", "Average Firebolt explanation"),
     ]))
@@ -1086,15 +1110,17 @@ def build_html():
         ("category", "Category"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
     ]))
 
     parts.append("<h3>Full response detail</h3>")
     parts.append(
         "<p>One entry per model answer, ordered by prompt then model. Each entry holds the full prompt, the "
-        "complete response the model returned, the deterministic checks, and the judge notes. This is the single "
-        "source of truth behind every number above. Entries are collapsed by default; click one to open it.</p>"
+        "complete response the model returned, the deterministic checks, and the judge notes. These raw model "
+        "responses are included for reproducibility. They are the source for the scoring checks above, but "
+        "product claims inside model answers should be read as model-generated text, not independently verified "
+        "product documentation. Entries are collapsed by default; click one to open it.</p>"
     )
     parts.append(full_detail_html())
 
@@ -1105,12 +1131,12 @@ def build_html():
         ("scored_answers", "Scored answers"),
         ("recommendation_applicable_answers", "Recommendation-applicable answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
     ]))
     parts.append(
         f"<p>Named prompts produced {pct(named_mention)} mention rate across {len(named)} scored answers. "
         f"Unnamed prompts produced {pct(unnamed_mention)} mention rate across {len(unnamed)} scored answers. "
-        "Recommendation rates exclude negative_tradeoff rows.</p>"
+        "Fit-recommendation rates exclude negative_tradeoff rows.</p>"
     )
     parts.append(
         "<p>This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the "
@@ -1135,7 +1161,7 @@ def build_html():
         ("prompt_ids", "Prompt IDs"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
         ("how_to_use", "How to use this row"),
     ]))
@@ -1331,17 +1357,16 @@ def build_markdown():
 
     md.append("## 3. Key findings\n")
     md.append(
-        f"- Firebolt was mentioned in {pct(mention_rate)} of scored answers. It was recommended in "
-        f"{pct(recommendation_rate)} of recommendation-applicable answers. The average visibility score was "
-        f"{num(avg_visibility, 1)} / {SCORE_MAX}."
+        f"- Firebolt was mentioned in {pct(mention_rate)} of scored answers. In recommendation-applicable "
+        f"prompts, Firebolt was put forward as a fit in {pct(recommendation_rate)} of answers. The average "
+        f"visibility score was {num(avg_visibility, 1)} / {SCORE_MAX}."
     )
     md.append(
         f"- How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in "
-        f"{pct(named_mention)} of answers. When the prompt only described the workload, the rate was "
-        f"{pct(unnamed_mention)}."
+        f"{pct(named_mention)} of answers. {unnamed_sentence}"
     )
     md.append(
-        f"- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was "
+        f"- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was"
         f"{pct(unnamed_recommendation)}."
     )
     if failed_model_rows:
@@ -1361,7 +1386,8 @@ def build_markdown():
     md.append("## 4. Experiment setup\n")
     md.append(
         "The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. "
-        "Only rows with status ok and non-empty answer text are scored.\n"
+        "Only rows from the selected run with `status=ok`, `capture_status=complete`, normal finish reason, and "
+        "non-empty answer text are included in scored results.\n"
     )
     md.append(
         "Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
@@ -1371,7 +1397,7 @@ def build_markdown():
     md.append(
         "One prompt, P007, asks when not to use Firebolt. A good answer explains where Firebolt does not fit, so "
         "recommending it is not the goal. P007 still counts toward the mention rate, but it is left out of the "
-        "recommendation rate so a correct 'do not use it here' answer is not scored as a miss.\n"
+        "fit-recommendation rate so a correct 'do not use it here' answer is not scored as a miss.\n"
     )
     md.append(
         "The visibility score is `V = 2M + 3R + K + E - P`. The formula is used for comparison within this run. "
@@ -1434,10 +1460,14 @@ def build_markdown():
             ("detail", "Detail"),
         ]))
     else:
-        md.append("No model validation or run failures were recorded.\n")
+        md.append(
+            f"Run validation passed. The selected run produced the expected {total_answers} rows across "
+            f"{unique_prompts} prompts and {model_count} models. All scored rows had `status=ok`, "
+            f"`capture_status=complete`, `finish_reason=STOP`, and complete answer text.\n"
+        )
 
     md.append("## 7. Results\n")
-    md.append("This section reports measurements only. Interpretation starts in section 10.\n")
+    md.append("This section reports measurements over validated rows only. Interpretation starts in section 10.\n")
     md.append(md_table(metric_records(), [
         ("metric", "Metric"),
         ("result", "Result"),
@@ -1453,14 +1483,14 @@ def build_markdown():
         ("firebolt_mentioned", "Firebolt mentioned"),
         ("firebolt_recommended", "Firebolt recommended"),
         ("average_visibility_score", "Average score"),
-        ("primary_recommendation", "Primary recommendation observed"),
+        ("primary_recommendation", "Judge-observed primary recommendation"),
     ]))
     md.append("### By model\n")
     md.append(md_table(by_model, [
         ("model", "Model"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
         ("average_firebolt_explanation", "Average Firebolt explanation"),
     ]))
@@ -1469,13 +1499,15 @@ def build_markdown():
         ("category", "Category"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
     ]))
 
     md.append("### Full response detail\n")
     md.append("One entry per model answer, with the full prompt, the complete model response, the deterministic "
-              "checks, and the judge notes. This is the single source of truth behind every number above.\n")
+              "checks, and the judge notes. These raw model responses are included for reproducibility. They are "
+              "the source for the scoring checks above, but product claims inside model answers should be read as "
+              "model-generated text, not independently verified product documentation.\n")
     md.append(full_detail_md())
 
     md.append("## 8. Named vs unnamed prompt behavior\n")
@@ -1485,12 +1517,12 @@ def build_markdown():
         ("scored_answers", "Scored answers"),
         ("recommendation_applicable_answers", "Recommendation-applicable answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
     ]))
     md.append(
         f"Named prompts produced {pct(named_mention)} mention rate across {len(named)} scored answers. "
         f"Unnamed prompts produced {pct(unnamed_mention)} mention rate across {len(unnamed)} scored answers. "
-        "Recommendation rates exclude negative_tradeoff rows.\n"
+        "Fit-recommendation rates exclude negative_tradeoff rows.\n"
     )
     md.append(
         "This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the "
@@ -1505,7 +1537,7 @@ def build_markdown():
     md.append(md_table(weak_prompt_records(), [
         ("prompt_id", "Prompt ID"),
         ("model", "Model"),
-        ("primary_recommendation", "Primary recommendation observed"),
+        ("primary_recommendation", "Judge-observed primary recommendation"),
         ("firebolt_mentioned", "Firebolt mentioned"),
         ("firebolt_recommended", "Firebolt recommended"),
         ("firebolt_rank", "Firebolt rank"),
@@ -1524,7 +1556,7 @@ def build_markdown():
         ("prompt_ids", "Prompt IDs"),
         ("scored_answers", "Scored answers"),
         ("mention_rate", "Mention rate"),
-        ("recommendation_rate", "Recommendation rate"),
+        ("recommendation_rate", "Fit-recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
         ("how_to_use", "How to use this row"),
     ]))
