@@ -25,7 +25,7 @@ The run produced 16 scored answers across 8 prompts and 2 models. The result sho
 
 ## 4. Experiment setup
 
-The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. Only rows from the selected run with `status=ok`, `capture_status=complete`, normal finish reason, and non-empty answer text are included in scored results.
+Each prompt is sent to every model, each answer is scored, and the scored answers feed this report. Before scoring, the answers are limited to one benchmark run and checked for completeness. Only answers the model finished in full are included. Truncated, empty, or failed responses are left out.
 
 Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are repeatable. A recommendation is counted only when the answer puts Firebolt forward as a fit, not when it merely names it. The judge model writes only the explanation and factual-risk notes.
 
@@ -87,7 +87,7 @@ The run used Gemini Flash-tier models because they are plausible default or low-
 
 ### Run health
 
-Run validation passed. The selected run produced the expected 16 rows across 8 prompts and 2 models. All scored rows had `status=ok`, `capture_status=complete`, `finish_reason=STOP`, and complete answer text.
+Validation passed. This report covers one benchmark run of 16 answers across 8 prompts and 2 models. Every answer was a complete, successfully generated response. No truncated or failed answers entered the results.
 
 ## 7. Results
 

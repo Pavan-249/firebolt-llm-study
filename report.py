@@ -995,9 +995,9 @@ def build_html():
 
     parts.append("<h2>4. Experiment setup</h2>")
     parts.append(
-        "<p>The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. "
-        "Only rows from the selected run with <code>status=ok</code>, <code>capture_status=complete</code>, "
-        "normal finish reason, and non-empty answer text are included in scored results.</p>"
+        "<p>Each prompt is sent to every model, each answer is scored, and the scored answers feed this report. "
+        "Before scoring, the answers are limited to one benchmark run and checked for completeness. Only answers "
+        "the model finished in full are included. Truncated, empty, or failed responses are left out.</p>"
     )
     parts.append(
         "<p>Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
@@ -1072,9 +1072,9 @@ def build_html():
         ]))
     else:
         parts.append(
-            f"<p>Run validation passed. The selected run produced the expected {total_answers} rows across "
-            f"{unique_prompts} prompts and {model_count} models. All scored rows had <code>status=ok</code>, "
-            f"<code>capture_status=complete</code>, <code>finish_reason=STOP</code>, and complete answer text.</p>"
+            f"<p>Validation passed. This report covers one benchmark run of {total_answers} answers across "
+            f"{unique_prompts} prompts and {model_count} models. Every answer was a complete, successfully "
+            f"generated response. No truncated or failed answers entered the results.</p>"
         )
 
     parts.append("<h2>7. Results</h2>")
@@ -1385,9 +1385,9 @@ def build_markdown():
 
     md.append("## 4. Experiment setup\n")
     md.append(
-        "The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. "
-        "Only rows from the selected run with `status=ok`, `capture_status=complete`, normal finish reason, and "
-        "non-empty answer text are included in scored results.\n"
+        "Each prompt is sent to every model, each answer is scored, and the scored answers feed this report. "
+        "Before scoring, the answers are limited to one benchmark run and checked for completeness. Only answers "
+        "the model finished in full are included. Truncated, empty, or failed responses are left out.\n"
     )
     md.append(
         "Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
@@ -1461,9 +1461,9 @@ def build_markdown():
         ]))
     else:
         md.append(
-            f"Run validation passed. The selected run produced the expected {total_answers} rows across "
-            f"{unique_prompts} prompts and {model_count} models. All scored rows had `status=ok`, "
-            f"`capture_status=complete`, `finish_reason=STOP`, and complete answer text.\n"
+            f"Validation passed. This report covers one benchmark run of {total_answers} answers across "
+            f"{unique_prompts} prompts and {model_count} models. Every answer was a complete, successfully "
+            f"generated response. No truncated or failed answers entered the results.\n"
         )
 
     md.append("## 7. Results\n")
