@@ -711,7 +711,7 @@ def baseline_records():
         {
             "metric": "Overall fit-recommendation rate",
             "current_run": pct(recommendation_rate),
-            "next_run_check": "Exclude negative_tradeoff rows from this denominator.",
+            "next_run_check": "Excludes the negative-tradeoff prompt.",
         },
     ]
 
@@ -719,7 +719,7 @@ def baseline_records():
 def score_terms():
     return [
         {"term": "M", "meaning": "Firebolt is mentioned", "values": "0 or 1"},
-        {"term": "R", "meaning": "Firebolt is recommended", "values": "0 or 1; not applied to negative_tradeoff prompts"},
+        {"term": "R", "meaning": "Firebolt is recommended", "values": "0 or 1; not applied to the negative-tradeoff prompt"},
         {"term": "K", "meaning": "Firebolt rank among named products", "values": "0 to 3"},
         {"term": "E", "meaning": "Firebolt explanation quality from judge", "values": "0 to 5"},
         {"term": "P", "meaning": "Factual-risk penalty from judge", "values": "0 to 3"},
@@ -973,7 +973,7 @@ def build_html():
         f"in {pct(named_mention)} of answers. {unnamed_sentence}</li>"
     )
     parts.append(
-        f"<li>Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was"
+        f"<li>Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was "
         f"{pct(unnamed_recommendation)}.</li>"
     )
     if failed_model_rows:
@@ -1136,23 +1136,22 @@ def build_html():
     parts.append(
         f"<p>Named prompts produced {pct(named_mention)} mention rate across {len(named)} scored answers. "
         f"Unnamed prompts produced {pct(unnamed_mention)} mention rate across {len(unnamed)} scored answers. "
-        "Fit-recommendation rates exclude negative_tradeoff rows.</p>"
+        "Fit-recommendation rates exclude the negative-tradeoff prompt.</p>"
     )
     parts.append(
-        "<p>This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the "
-        "basis for interpreting why the split happened.</p>"
+        "<p>These are measurements. Sections 9 and 10 look at why the split happened.</p>"
     )
 
     parts.append("<h2>9. Weak prompt analysis</h2>")
     parts.append(
-        "<p>Each row below is the weakest scored answer for a prompt. It is included to show the failure mode, "
-        "not to prescribe content. The evidence-gap column should be treated as a hypothesis for review.</p>"
+        "<p>Each entry below is the weakest answer for one prompt, shown to illustrate where Firebolt was missed. "
+        "The evidence-gap column is a hypothesis to review, not a finding.</p>"
     )
     parts.append(weak_prompt_html())
 
     parts.append("<h2>10. Content gaps</h2>")
     parts.append(
-        "<p>The gaps below are inferred from rows where Firebolt was absent, weak, or mentioned without a "
+        "<p>The gaps below are inferred from answers where Firebolt was absent, weak, or mentioned without a "
         "recommendation. They are not product findings. They indicate what public evidence the model appeared "
         "not to retrieve.</p>"
     )
@@ -1208,8 +1207,8 @@ def build_html():
 
     parts.append("<h2>13. Appendix with raw excerpts</h2>")
     parts.append(
-        "<p>Excerpts are included for the weak-prompt rows only. They are collapsed by default so the memo "
-        "does not read like a transcript.</p>"
+        "<p>A short excerpt from each of the weakest answers, for quick reference. The full responses are in "
+        "section 7. Open an entry to read its excerpt.</p>"
     )
     parts.append(appendix_html())
 
@@ -1366,7 +1365,7 @@ def build_markdown():
         f"{pct(named_mention)} of answers. {unnamed_sentence}"
     )
     md.append(
-        f"- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was"
+        f"- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was "
         f"{pct(unnamed_recommendation)}."
     )
     if failed_model_rows:
@@ -1522,17 +1521,16 @@ def build_markdown():
     md.append(
         f"Named prompts produced {pct(named_mention)} mention rate across {len(named)} scored answers. "
         f"Unnamed prompts produced {pct(unnamed_mention)} mention rate across {len(unnamed)} scored answers. "
-        "Fit-recommendation rates exclude negative_tradeoff rows.\n"
+        "Fit-recommendation rates exclude the negative-tradeoff prompt.\n"
     )
     md.append(
-        "This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the "
-        "basis for interpreting why the split happened.\n"
+        "These are measurements. Sections 9 and 10 look at why the split happened.\n"
     )
 
     md.append("## 9. Weak prompt analysis\n")
     md.append(
-        "Each row below is the weakest scored answer for a prompt. It is included to show the failure mode, "
-        "not to prescribe content. The evidence-gap column should be treated as a hypothesis for review.\n"
+        "Each entry below is the weakest answer for one prompt, shown to illustrate where Firebolt was missed. "
+        "The evidence-gap column is a hypothesis to review, not a finding.\n"
     )
     md.append(md_table(weak_prompt_records(), [
         ("prompt_id", "Prompt ID"),
@@ -1547,7 +1545,7 @@ def build_markdown():
 
     md.append("## 10. Content gaps\n")
     md.append(
-        "The gaps below are inferred from rows where Firebolt was absent, weak, or mentioned without a "
+        "The gaps below are inferred from answers where Firebolt was absent, weak, or mentioned without a "
         "recommendation. They are not product findings. They indicate what public evidence the model appeared "
         "not to retrieve.\n"
     )
@@ -1598,8 +1596,8 @@ def build_markdown():
 
     md.append("## 13. Appendix with raw excerpts\n")
     md.append(
-        "Excerpts are included for the weak-prompt rows only. They are collapsed by default so the memo "
-        "does not read like a transcript.\n"
+        "A short excerpt from each of the weakest answers, for quick reference. The full responses are in "
+        "section 7. Open an entry to read its excerpt.\n"
     )
     for _, row in appendix_rows.iterrows():
         label = (

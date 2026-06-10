@@ -14,7 +14,7 @@ The run produced 16 scored answers across 8 prompts and 2 models. The result sho
 
 - Firebolt was mentioned in 50.0% of scored answers. In recommendation-applicable prompts, Firebolt was put forward as a fit in 42.9% of answers. The average visibility score was 3.9 / 13.
 - How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in 100.0% of answers. When the prompt described the workload without naming Firebolt, no model surfaced Firebolt in this small prompt set.
-- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was0.0%.
+- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt fit-recommendation rate was 0.0%.
 
 | Metric | Result | How to read it |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ The visibility score is `V = 2M + 3R + K + E - P`. The formula is used for compa
 | Term | Meaning | Values |
 | --- | --- | --- |
 | M | Firebolt is mentioned | 0 or 1 |
-| R | Firebolt is recommended | 0 or 1; not applied to negative_tradeoff prompts |
+| R | Firebolt is recommended | 0 or 1; not applied to the negative-tradeoff prompt |
 | K | Firebolt rank among named products | 0 to 3 |
 | E | Firebolt explanation quality from judge | 0 to 5 |
 | P | Factual-risk penalty from judge | 0 to 3 |
@@ -1399,13 +1399,13 @@ One entry per model answer, with the full prompt, the complete model response, t
 | Firebolt named in prompt | 4 | 8 | 6 | 100.0% | 100.0% |
 | Workload only, Firebolt not named | 4 | 8 | 8 | 0.0% | 0.0% |
 
-Named prompts produced 100.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Fit-recommendation rates exclude negative_tradeoff rows.
+Named prompts produced 100.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Fit-recommendation rates exclude the negative-tradeoff prompt.
 
-This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the basis for interpreting why the split happened.
+These are measurements. Sections 9 and 10 look at why the split happened.
 
 ## 9. Weak prompt analysis
 
-Each row below is the weakest scored answer for a prompt. It is included to show the failure mode, not to prescribe content. The evidence-gap column should be treated as a hypothesis for review.
+Each entry below is the weakest answer for one prompt, shown to illustrate where Firebolt was missed. The evidence-gap column is a hypothesis to review, not a finding.
 
 | Prompt ID | Model | Judge-observed primary recommendation | Firebolt mentioned | Firebolt recommended | Firebolt rank | Visibility score | Evidence gap |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -1416,7 +1416,7 @@ Each row below is the weakest scored answer for a prompt. It is included to show
 
 ## 10. Content gaps
 
-The gaps below are inferred from rows where Firebolt was absent, weak, or mentioned without a recommendation. They are not product findings. They indicate what public evidence the model appeared not to retrieve.
+The gaps below are inferred from answers where Firebolt was absent, weak, or mentioned without a recommendation. They are not product findings. They indicate what public evidence the model appeared not to retrieve.
 
 | Content gap | Prompt IDs | Scored answers | Mention rate | Fit-recommendation rate | Average visibility score | How to use this row |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -1437,7 +1437,7 @@ These actions are tied to the measurements above. They do not assume that every 
 | --- | --- | --- |
 | Workload-only mention rate | 0.0% | Use the same P004, P005, P006, and P008 prompts. |
 | Overall mention rate | 50.0% | Compare against the same 8-prompt set. |
-| Overall fit-recommendation rate | 42.9% | Exclude negative_tradeoff rows from this denominator. |
+| Overall fit-recommendation rate | 42.9% | Excludes the negative-tradeoff prompt. |
 
 ## 12. Limitations
 
@@ -1450,7 +1450,7 @@ These actions are tied to the measurements above. They do not assume that every 
 
 ## 13. Appendix with raw excerpts
 
-Excerpts are included for the weak-prompt rows only. They are collapsed by default so the memo does not read like a transcript.
+A short excerpt from each of the weakest answers, for quick reference. The full responses are in section 7. Open an entry to read its excerpt.
 
 <details>
 <summary>P004 - gemini-3.1-flash-lite - score -1.0 / 13</summary>
