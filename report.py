@@ -175,10 +175,27 @@ def field(row, name, fallback=""):
 with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     config = json.load(f)
 
+MIN_ANSWER_CHARS = int(config.get("generation_settings", {}).get("min_answer_chars", 400))
+
 df = pd.read_csv(INPUT) if os.path.exists(INPUT) else pd.DataFrame()
 prompts_df = pd.read_csv(PROMPTS_PATH) if os.path.exists(PROMPTS_PATH) else pd.DataFrame()
 raw_rows = load_jsonl(RAW_PATH)
 model_error_rows = load_jsonl(MODEL_ERRORS_PATH)
+
+# Never present an incomplete or truncated answer as a result. A complete answer
+# is one the model finished writing and is at least MIN_ANSWER_CHARS long.
+# Truncated captures are dropped here so they cannot appear as weak rows or in
+# the appendix. On clean data every answer is complete, so this drops nothing.
+if len(df):
+    answer_len = df["answer"].astype(str).str.len()
+    if "capture_status" in df.columns:
+        capture = df["capture_status"].astype(str).str.strip().str.lower()
+        keep = capture.eq("complete") | (
+            capture.isin(["", "nan", "none"]) & (answer_len >= MIN_ANSWER_CHARS)
+        )
+    else:
+        keep = answer_len >= MIN_ANSWER_CHARS
+    df = df[keep].reset_index(drop=True)
 
 had_regex_recommendation = "regex_firebolt_recommended" in df.columns
 
@@ -625,14 +642,15 @@ def metric_records():
             "metric": "Firebolt recommendation rate",
             "result": pct(recommendation_rate),
             "evidence": (
-                "Deterministic recommendation phrase matched Firebolt; "
-                f"{recommendation_applicable_answers} recommendation-applicable answers"
+                "Share of answers that put Firebolt forward as a fit. "
+                f"Counted over {recommendation_applicable_answers} answers where a recommendation applies "
+                "(the 'when not to use Firebolt' prompt is left out)"
             ),
         },
         {
             "metric": "Average visibility score",
             "result": f"{num(avg_visibility, 1)} / {SCORE_MAX}",
-            "evidence": f"Standard prompts only; current score band: {score_band(avg_visibility)}",
+            "evidence": f"Excludes the 'when not to use Firebolt' prompt. Current band: {score_band(avg_visibility)}",
         },
     ]
 
@@ -828,12 +846,13 @@ def build_html():
         f"{num(avg_visibility, 1)} / {SCORE_MAX}.</li>"
     )
     parts.append(
-        f"<li>Named prompts behaved differently from workload-only prompts. Named prompts had an "
-        f"{pct(named_mention)} mention rate. Workload-only prompts had a {pct(unnamed_mention)} mention rate.</li>"
+        f"<li>How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it "
+        f"in {pct(named_mention)} of answers. When the prompt only described the workload, the rate was "
+        f"{pct(unnamed_mention)}.</li>"
     )
     parts.append(
-        f"<li>All workload-only prompts in this run, P004, P005, P006, and P008, had "
-        f"{pct(unnamed_recommendation)} Firebolt recommendation rate.</li>"
+        f"<li>Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was "
+        f"{pct(unnamed_recommendation)}.</li>"
     )
     if failed_model_rows:
         parts.append(
@@ -858,13 +877,15 @@ def build_html():
         "Only rows with status ok and non-empty answer text are scored.</p>"
     )
     parts.append(
-        "<p>Mention and rank are deterministic text checks. Recommendation is also deterministic when the scored "
-        "CSV includes regex_firebolt_recommended. The judge model writes explanation fields and factual-risk notes.</p>"
+        "<p>Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
+        "repeatable and do not depend on a model's opinion. A recommendation is counted only when the answer puts "
+        "Firebolt forward as a fit for the workload, not when it merely names it. The judge model writes only the "
+        "explanation and factual-risk notes.</p>"
     )
     parts.append(
-        "<p>P007 is a negative-tradeoff prompt. It tests whether the answer explains where Firebolt is not a fit. "
-        "It is excluded from recommendation-rate denominators because recommending Firebolt is not the target "
-        "behavior for that prompt.</p>"
+        "<p>One prompt, P007, asks when not to use Firebolt. A good answer here explains where Firebolt does not "
+        "fit, so recommending Firebolt is not the goal. P007 still counts toward the mention rate, but it is left "
+        "out of the recommendation rate so a correct 'do not use it here' answer is not scored as a miss.</p>"
     )
     parts.append(
         "<p>The visibility score is V = 2M + 3R + K + E - P. The formula is used for comparison within this run. "
@@ -1041,7 +1062,11 @@ def build_html():
     parts.append("<ul>")
     for item in config.get("limitations", []):
         parts.append(f"<li>{esc(item)}</li>")
-    parts.append("<li>The run contains a model failure. That failure is shown in run health and excluded from scored rates.</li>")
+    if failed_model_rows or incomplete_models:
+        parts.append(
+            "<li>One or more models did not return a complete set of answers in this run. Those rows are listed "
+            "under run health and are left out of the rates, rather than counted as Firebolt failures.</li>"
+        )
     parts.append("</ul>")
 
     parts.append("<h2>13. Appendix with raw excerpts</h2>")
@@ -1184,12 +1209,13 @@ def build_markdown():
         f"{num(avg_visibility, 1)} / {SCORE_MAX}."
     )
     md.append(
-        f"- Named prompts had an {pct(named_mention)} mention rate. Workload-only prompts had a "
-        f"{pct(unnamed_mention)} mention rate."
+        f"- How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in "
+        f"{pct(named_mention)} of answers. When the prompt only described the workload, the rate was "
+        f"{pct(unnamed_mention)}."
     )
     md.append(
-        f"- Workload-only prompts P004, P005, P006, and P008 had {pct(unnamed_recommendation)} "
-        "Firebolt recommendation rate."
+        f"- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was "
+        f"{pct(unnamed_recommendation)}."
     )
     if failed_model_rows:
         md.append(f"- The run recorded {len(failed_model_rows)} skipped or failed model entry.")
@@ -1211,13 +1237,14 @@ def build_markdown():
         "Only rows with status ok and non-empty answer text are scored.\n"
     )
     md.append(
-        "Mention and rank are deterministic text checks. Recommendation is also deterministic when the scored "
-        "CSV includes regex_firebolt_recommended. The judge model writes explanation fields and factual-risk notes.\n"
+        "Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are "
+        "repeatable. A recommendation is counted only when the answer puts Firebolt forward as a fit, not when it "
+        "merely names it. The judge model writes only the explanation and factual-risk notes.\n"
     )
     md.append(
-        "P007 is a negative-tradeoff prompt. It tests whether the answer explains where Firebolt is not a fit. "
-        "It is excluded from recommendation-rate denominators because recommending Firebolt is not the target "
-        "behavior for that prompt.\n"
+        "One prompt, P007, asks when not to use Firebolt. A good answer explains where Firebolt does not fit, so "
+        "recommending it is not the goal. P007 still counts toward the mention rate, but it is left out of the "
+        "recommendation rate so a correct 'do not use it here' answer is not scored as a miss.\n"
     )
     md.append(
         "The visibility score is `V = 2M + 3R + K + E - P`. The formula is used for comparison within this run. "
@@ -1400,7 +1427,9 @@ def build_markdown():
     md.append("## 12. Limitations\n")
     for item in config.get("limitations", []):
         md.append(f"- {clean_text(item)}")
-    md.append("- The run contains a model failure. That failure is shown in run health and excluded from scored rates.")
+    if failed_model_rows or incomplete_models:
+        md.append("- One or more models did not return a complete set of answers in this run. Those rows are listed "
+                  "under run health and are left out of the rates, rather than counted as Firebolt failures.")
     md.append("")
 
     md.append("## 13. Appendix with raw excerpts\n")

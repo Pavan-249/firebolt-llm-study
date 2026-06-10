@@ -2,7 +2,7 @@
 
 _Gemini visibility on analytics-database selection prompts._
 
-09 June 2026 | Prepared by Pavan Kumar | Version 1.0 | Run 20260609_140045_1cf0c17b
+09 June 2026 | Prepared by Pavan Kumar | Version 1.0 | Run 20260609_165014_f5553d96
 
 ## 2. Context
 
@@ -12,24 +12,24 @@ The run produced 16 scored answers across 8 prompts and 2 models. The result sho
 
 ## 3. Key findings
 
-- Firebolt was mentioned in 37.5% of scored answers. It was recommended in 21.4% of recommendation-applicable answers. The average visibility score was 1.9 / 13.
-- Named prompts had an 75.0% mention rate. Workload-only prompts had a 0.0% mention rate.
-- Workload-only prompts P004, P005, P006, and P008 had 0.0% Firebolt recommendation rate.
+- Firebolt was mentioned in 50.0% of scored answers. It was recommended in 42.9% of recommendation-applicable answers. The average visibility score was 3.9 / 13.
+- How the prompt was framed mattered most. When the prompt named Firebolt, the model mentioned it in 100.0% of answers. When the prompt only described the workload, the rate was 0.0%.
+- Across the workload-only prompts (P004, P005, P006, P008), the Firebolt recommendation rate was 0.0%.
 
 | Metric | Result | How to read it |
 | --- | --- | --- |
 | Scored answers | 16 | 8 prompts across 2 models with scored answers |
-| Firebolt mention rate | 37.5% | Answer contains the word Firebolt |
-| Firebolt recommendation rate | 21.4% | Deterministic recommendation phrase matched Firebolt; 14 recommendation-applicable answers |
-| Average visibility score | 1.9 / 13 | Standard prompts only; current score band: weak |
+| Firebolt mention rate | 50.0% | Answer contains the word Firebolt |
+| Firebolt recommendation rate | 42.9% | Share of answers that put Firebolt forward as a fit. Counted over 14 answers where a recommendation applies (the 'when not to use Firebolt' prompt is left out) |
+| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: weak |
 
 ## 4. Experiment setup
 
 The pipeline is fixed: prompts.csv to model answers, then results/scored_answers.csv, then this report. Only rows with status ok and non-empty answer text are scored.
 
-Mention and rank are deterministic text checks. Recommendation is also deterministic when the scored CSV includes regex_firebolt_recommended. The judge model writes explanation fields and factual-risk notes.
+Mention, rank, and recommendation are all decided by exact text checks on the answer, so they are repeatable. A recommendation is counted only when the answer puts Firebolt forward as a fit, not when it merely names it. The judge model writes only the explanation and factual-risk notes.
 
-P007 is a negative-tradeoff prompt. It tests whether the answer explains where Firebolt is not a fit. It is excluded from recommendation-rate denominators because recommending Firebolt is not the target behavior for that prompt.
+One prompt, P007, asks when not to use Firebolt. A good answer explains where Firebolt does not fit, so recommending it is not the goal. P007 still counts toward the mention rate, but it is left out of the recommendation rate so a correct 'do not use it here' answer is not scored as a miss.
 
 The visibility score is `V = 2M + 3R + K + E - P`. The formula is used for comparison within this run. It is not a market-share score or a product score.
 
@@ -81,7 +81,7 @@ The run used Gemini Flash-tier models because they are plausible default or low-
 | Prompts per model | 8 |
 | Answer temperature | 0.20 |
 | Answer top_p | 0.95 |
-| Max output tokens | 900 |
+| Max output tokens | 4096 |
 | Judge model | gemini-3.1-flash-lite |
 | Judge temperature | 0.00 |
 
@@ -96,49 +96,49 @@ This section reports measurements only. Interpretation starts in section 10.
 | Metric | Result | Definition |
 | --- | --- | --- |
 | Scored answers | 16 | 8 prompts across 2 models with scored answers |
-| Firebolt mention rate | 37.5% | Answer contains the word Firebolt |
-| Firebolt recommendation rate | 21.4% | Deterministic recommendation phrase matched Firebolt; 14 recommendation-applicable answers |
-| Average visibility score | 1.9 / 13 | Standard prompts only; current score band: weak |
+| Firebolt mention rate | 50.0% | Answer contains the word Firebolt |
+| Firebolt recommendation rate | 42.9% | Share of answers that put Firebolt forward as a fit. Counted over 14 answers where a recommendation applies (the 'when not to use Firebolt' prompt is left out) |
+| Average visibility score | 3.9 / 13 | Excludes the 'when not to use Firebolt' prompt. Current band: weak |
 
 ### By prompt
 
 | Prompt ID | Framing | Category | Prompt | Scored answers | Firebolt mentioned | Firebolt recommended | Average score | Primary recommendation observed |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| P001 | Named | direct_comparison | I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should... | 2 | Yes (2/2) | Yes (1/2) | 6.50 / 13 | unclear |
-| P002 | Named | direct_comparison | Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs? | 2 | Yes (1/2) | Yes (1/2) | 5.50 / 13 | unclear |
-| P003 | Named | lakehouse_iceberg | Firebolt vs Trino for querying Iceberg tables on S3: which is better? | 2 | Yes (1/2) | Yes (1/2) | 6.50 / 13 | Trino \| unclear |
-| P004 | Unnamed | workload_discovery | I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I u... | 2 | No (0/2) | No (0/2) | -1.50 / 13 | DuckDB |
-| P005 | Unnamed | workload_discovery | I need to serve analytics to thousands of dashboard users with predictable latency. What d... | 2 | No (0/2) | No (0/2) | -1.00 / 13 | ClickHouse |
-| P006 | Unnamed | migration | We currently use Trino for lakehouse queries but dashboard latency is poor. What should we... | 2 | No (0/2) | No (0/2) | -1.00 / 13 | StarRocks \| unclear |
-| P007 | Named | negative_tradeoff | When should I not use Firebolt? | 2 | Yes (2/2) | N/A (boundary prompt) | 6.50 / 10 | unclear |
-| P008 | Unnamed | category_discovery | What are good ClickHouse alternatives for low-latency analytics? | 2 | No (0/2) | No (0/2) | -1.50 / 13 | unclear |
+| P001 | Named | direct_comparison | I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should... | 2 | Yes (2/2) | Yes (2/2) | 11.00 / 13 | unclear |
+| P002 | Named | direct_comparison | Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs? | 2 | Yes (2/2) | Yes (2/2) | 10.00 / 13 | unclear |
+| P003 | Named | lakehouse_iceberg | Firebolt vs Trino for querying Iceberg tables on S3: which is better? | 2 | Yes (2/2) | Yes (2/2) | 11.50 / 13 | Trino \| unclear |
+| P004 | Unnamed | workload_discovery | I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I u... | 2 | No (0/2) | No (0/2) | -1.00 / 13 | ClickHouse \| DuckDB |
+| P005 | Unnamed | workload_discovery | I need to serve analytics to thousands of dashboard users with predictable latency. What d... | 2 | No (0/2) | No (0/2) | -1.50 / 13 | ClickHouse |
+| P006 | Unnamed | migration | We currently use Trino for lakehouse queries but dashboard latency is poor. What should we... | 2 | No (0/2) | No (0/2) | -2.00 / 13 | ClickHouse \| unclear |
+| P007 | Named | negative_tradeoff | When should I not use Firebolt? | 2 | Yes (2/2) | N/A (boundary prompt) | 8.00 / 10 | unclear |
+| P008 | Unnamed | category_discovery | What are good ClickHouse alternatives for low-latency analytics? | 2 | No (0/2) | No (0/2) | -1.00 / 13 | StarRocks \| unclear |
 
 ### By model
 
 | Model | Scored answers | Mention rate | Recommendation rate | Average visibility score | Average Firebolt explanation |
 | --- | --- | --- | --- | --- | --- |
 | gemini-3.1-flash-lite | 8 | 50.0% | 42.9% | 4.62 | 2.38 |
-| gemini-3.5-flash | 8 | 25.0% | 0.0% | 0.38 | 0.62 |
+| gemini-3.5-flash | 8 | 50.0% | 42.9% | 4.12 | 2.50 |
 
 ### By prompt category
 
 | Category | Scored answers | Mention rate | Recommendation rate | Average visibility score |
 | --- | --- | --- | --- | --- |
-| lakehouse_iceberg | 2 | 50.0% | 50.0% | 6.50 |
-| negative_tradeoff | 2 | 100.0% | N/A | 6.50 |
-| direct_comparison | 4 | 75.0% | 50.0% | 6.00 |
-| migration | 2 | 0.0% | 0.0% | -1.00 |
+| lakehouse_iceberg | 2 | 100.0% | 100.0% | 11.50 |
+| direct_comparison | 4 | 100.0% | 100.0% | 10.50 |
+| negative_tradeoff | 2 | 100.0% | N/A | 8.00 |
+| category_discovery | 2 | 0.0% | 0.0% | -1.00 |
 | workload_discovery | 4 | 0.0% | 0.0% | -1.25 |
-| category_discovery | 2 | 0.0% | 0.0% | -1.50 |
+| migration | 2 | 0.0% | 0.0% | -2.00 |
 
 ## 8. Named vs unnamed prompt behavior
 
 | Prompt framing | Prompts | Scored answers | Recommendation-applicable answers | Mention rate | Recommendation rate |
 | --- | --- | --- | --- | --- | --- |
-| Firebolt named in prompt | 4 | 8 | 6 | 75.0% | 50.0% |
+| Firebolt named in prompt | 4 | 8 | 6 | 100.0% | 100.0% |
 | Workload only, Firebolt not named | 4 | 8 | 8 | 0.0% | 0.0% |
 
-Named prompts produced 75.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Recommendation rates exclude negative_tradeoff rows.
+Named prompts produced 100.0% mention rate across 8 scored answers. Unnamed prompts produced 0.0% mention rate across 8 scored answers. Recommendation rates exclude negative_tradeoff rows.
 
 This section is still a result, not an explanation. The gap rows in sections 9 and 10 provide the basis for interpreting why the split happened.
 
@@ -148,14 +148,10 @@ Each row below is the weakest scored answer for a prompt. It is included to show
 
 | Prompt ID | Model | Primary recommendation observed | Firebolt mentioned | Firebolt recommended | Firebolt rank | Visibility score | Evidence gap |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| P004 | gemini-3.1-flash-lite | DuckDB | No | No | not_mentioned | -2.0 / 13 | Evidence that Firebolt fits S3-resident Parquet dashboard queries. |
-| P008 | gemini-3.1-flash-lite | unclear | No | No | not_mentioned | -2.0 / 13 | Evidence positioning Firebolt as a ClickHouse alternative. |
-| P002 | gemini-3.5-flash | unclear | No | No | not_mentioned | -1.0 / 13 | Evidence comparing Firebolt and ClickHouse for customer-facing dashboards. |
-| P005 | gemini-3.1-flash-lite | ClickHouse | No | No | not_mentioned | -1.0 / 13 | Evidence for high-concurrency dashboard latency and predictability. |
-| P006 | gemini-3.1-flash-lite | StarRocks | No | No | not_mentioned | -1.0 / 13 | Evidence for improving dashboard latency when Trino is already used over lakehouse data. |
-| P003 | gemini-3.5-flash | Trino | No | No | not_mentioned | 1.0 / 13 | Public documentation or benchmarks demonstrating high-performance, zero-copy querying of external Iceberg tables on S3 w... |
-| P001 | gemini-3.5-flash | unclear | Yes | No | last | 3.0 / 13 | Evidence comparing Firebolt and ClickHouse for low-latency analytics. |
-| P007 | gemini-3.5-flash | unclear | Yes | No | first | 4.0 / 10 | Evidence defining where Firebolt is and is not a fit. |
+| P005 | gemini-3.5-flash | ClickHouse | No | No | not_mentioned | -2.0 / 13 | Evidence for high-concurrency dashboard latency and predictability. |
+| P006 | gemini-3.1-flash-lite | ClickHouse | No | No | not_mentioned | -2.0 / 13 | Evidence for improving dashboard latency when Trino is already used over lakehouse data. |
+| P004 | gemini-3.1-flash-lite | DuckDB | No | No | not_mentioned | -1.0 / 13 | Evidence that Firebolt fits S3-resident Parquet dashboard queries. |
+| P008 | gemini-3.1-flash-lite | StarRocks | No | No | not_mentioned | -1.0 / 13 | Evidence positioning Firebolt as a ClickHouse alternative. |
 
 ## 10. Content gaps
 
@@ -163,11 +159,9 @@ The gaps below are inferred from rows where Firebolt was absent, weak, or mentio
 
 | Content gap | Prompt IDs | Scored answers | Mention rate | Recommendation rate | Average visibility score | How to use this row |
 | --- | --- | --- | --- | --- | --- | --- |
-| Lakehouse and Iceberg positioning gap | P004, P006 | 4 | 0.0% | 0.0% | -1.25 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
-| Category discovery gap | P008 | 2 | 0.0% | 0.0% | -1.50 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
-| Customer-facing analytics positioning gap | P005 | 2 | 0.0% | 0.0% | -1.00 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
-| Firebolt ignored despite being named | P002, P003 | 2 | 0.0% | 0.0% | 0.00 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
-| ClickHouse comparison confidence gap | P001 | 1 | 100.0% | 0.0% | 3.00 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
+| Lakehouse and Iceberg positioning gap | P004, P006 | 4 | 0.0% | 0.0% | -1.50 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
+| Customer-facing analytics positioning gap | P005 | 2 | 0.0% | 0.0% | -1.50 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
+| Category discovery gap | P008 | 2 | 0.0% | 0.0% | -1.00 | Treat as a hypothesis. Confirm with product and engineering before publishing content. |
 
 ## 11. Recommended actions
 
@@ -181,8 +175,8 @@ These actions are tied to the measurements above. They do not assume that every 
 | Metric | Current run | Next-run check |
 | --- | --- | --- |
 | Workload-only mention rate | 0.0% | Use the same P004, P005, P006, and P008 prompts. |
-| Overall mention rate | 37.5% | Compare against the same 8-prompt set. |
-| Overall recommendation rate | 21.4% | Exclude negative_tradeoff rows from this denominator. |
+| Overall mention rate | 50.0% | Compare against the same 8-prompt set. |
+| Overall recommendation rate | 42.9% | Exclude negative_tradeoff rows from this denominator. |
 
 ## 12. Limitations
 
@@ -192,97 +186,52 @@ These actions are tied to the measurements above. They do not assume that every 
 - Model answers can change over time as model versions and training data change.
 - The judge model writes the explanation text, so important rows should still be read by a person.
 - The result is most useful when the same prompt set is rerun after public content about Firebolt changes.
-- The run contains a model failure. That failure is shown in run health and excluded from scored rates.
 
 ## 13. Appendix with raw excerpts
 
 Excerpts are included for the weak-prompt rows only. They are collapsed by default so the memo does not read like a transcript.
 
 <details>
-<summary>P001 - gemini-3.5-flash - score 3.0 / 13</summary>
-
-**Prompt:** I am choosing between Firebolt and ClickHouse for low-latency analytics. Which one should I use?
-
-**Firebolt status:** Mentioned: Yes; recommended: No; rank: last; score: 3.0 / 13.
-
-Both ClickHouse and Firebolt are designed for sub-second, low-latency analytics on large datasets, but they represent two fundamentally different architectural philosophies
-
-</details>
-
-<details>
-<summary>P002 - gemini-3.5-flash - score -1.0 / 13</summary>
-
-**Prompt:** Firebolt vs ClickHouse for customer-facing dashboards: what are the tradeoffs?
-
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -1.0 / 13.
-
-facing" aspect: Customer-facing means concurrency is king. If 10,000 users hit the dashboard, how do they scale?
-
-</details>
-
-<details>
-<summary>P003 - gemini-3.5-flash - score 1.0 / 13</summary>
-
-**Prompt:** Firebolt vs Trino for querying Iceberg tables on S3: which is better?
-
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: 1.0 / 13.
-
-This is a common "Query Engine vs. Cloud Data Warehouse" comparison, but the context of Apache Iceberg on S3 makes it highly specific.
-
-</details>
-
-<details>
-<summary>P004 - gemini-3.1-flash-lite - score -2.0 / 13</summary>
+<summary>P004 - gemini-3.1-flash-lite - score -1.0 / 13</summary>
 
 **Prompt:** I have 100GB of Parquet data in S3 and need fast dashboard queries. What engine should I use?
 
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -2.0 / 13.
+**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -1.0 / 13.
 
-At 100GB, you are in a "target range." You are too large for a traditional RDBMS to handle comfortably without significant indexing overhead, but you are small enough that you don't necessarily need a massive distributed cluster (like a full-blown Spark or Presto deployment) to get sub-second performance. To give you the right recommendation, we need to look at your concurrency requirements and latency expectations. The answer frames your options based on the operational trade-offs. 1. The "managed" Path: DuckDB (via MotherDuck or local) If your dashboard is for a small internal team or a low-concurrency application, DuckDB is the current common reference point for this sc...
+For a 100GB dataset, you are in a "target range." It is small enough to fit into the memory of a single large instance, but large enough that a naive approach (like reading the whole file into a Pandas DataFrame) will cause performance bottlenecks and memory errors. Since your data is already in Parquet on S3, you have a few distinct paths depending on your tolerance for operational overhead and your latency requirements. 1. The "managed" Path: AWS Athena (Presto/Trino-based) If you are already in the AWS ecosystem, Athena is the path of least resistance. The Fit: It's serverless. You point it at your S3 bucket, define a schema in Glue, and query. Tradeoffs: It is not designed...
 
 </details>
 
 <details>
-<summary>P005 - gemini-3.1-flash-lite - score -1.0 / 13</summary>
+<summary>P005 - gemini-3.5-flash - score -2.0 / 13</summary>
 
 **Prompt:** I need to serve analytics to thousands of dashboard users with predictable latency. What database should I consider?
 
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -1.0 / 13.
+**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -2.0 / 13.
 
-Serving thousands of concurrent dashboard users with predictable latency is a common "high-concurrency OLAP" challenge. The primary bottleneck here isn't usually the raw query speed, but concurrency management-ensuring that one heavy query doesn't starve the others and that the system can handle the cache-miss spikes. To give you the right recommendation, we need to look at where your data lives and how "fresh" it needs to be. The answer groups your options based on the architectural trade-offs. 1. The "Pre-Aggregated" Approach (Druid or Pinot) If your dashboard users are hitting the same metrics repeatedly (e.g., "Total Sales by Region"), you should look at Apache Dr...
+Serving analytics to thousands of concurrent dashboard users with predictable, sub-second latency is a specific and challenging workload. It is often referred to as user-facing analytics. Traditional cloud data warehouses (like Snowflake, BigQuery, or Redshift) are excellent for internal BI and heavy ad-hoc queries, but they are not designed for this. They will struggle with high concurrency, and the cost of auto-scaling them to support thousands of concurrent users will be prohibitively expensive. To solve this, you need to look at Real-Time OLAP (RT-OLAP) databases or specialized caching architectures. Here is a breakdown of the three main paths you should consider, along with...
 
 </details>
 
 <details>
-<summary>P006 - gemini-3.1-flash-lite - score -1.0 / 13</summary>
+<summary>P006 - gemini-3.1-flash-lite - score -2.0 / 13</summary>
 
 **Prompt:** We currently use Trino for lakehouse queries but dashboard latency is poor. What should we evaluate next?
 
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -1.0 / 13.
+**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -2.0 / 13.
 
-It's a common inflection point. Trino is a general-purpose "federation engine"-it's essentially the general-purpose engine of data-but it's fundamentally a compute-on-read engine. When you hit it with dashboard traffic, you're asking it to scan files, parse metadata, and execute complex joins in real-time, which is why your latency is suffering. To move from "querying a lake" to "serving dashboards," you need to shift from compute-on-read to compute-on-indexed-data. The answer groups your next steps based on your operational appetite and the nature of your data. - 1. The "Keep the Lake, Add an Accelerator" Approach If you want to keep your data in S3/GCS/ADLS but need su...
-
-</details>
-
-<details>
-<summary>P007 - gemini-3.5-flash - score 4.0 / 10</summary>
-
-**Prompt:** When should I not use Firebolt?
-
-**Firebolt status:** Mentioned: Yes; recommended: No; rank: first; score: 4.0 / 10.
-
-Firebolt is a specialized tool. It was built with a specific goal in mind: delivering sub-second, high-concurrency query performance on massive datasets (typically
+It's a common "Trino wall." Trino is a general-purpose federated query engine, but it is fundamentally designed for ad-hoc exploration and ETL, not for high-concurrency, sub-second dashboarding. When you force Trino to serve dashboards, you're hitting the overhead of its distributed query planning and the latency of reading raw files from S3/GCS on every request. To move forward, you need to decide if you want to accelerate the lakehouse or move the data into a specialized serving layer. The answer evaluates your next steps. 1. The "Lakehouse Acceleration" Path (Keep the data in S3/Object Storage) If you want to keep your data in your data lake and avoid the operational burd...
 
 </details>
 
 <details>
-<summary>P008 - gemini-3.1-flash-lite - score -2.0 / 13</summary>
+<summary>P008 - gemini-3.1-flash-lite - score -1.0 / 13</summary>
 
 **Prompt:** What are good ClickHouse alternatives for low-latency analytics?
 
-**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -2.0 / 13.
+**Firebolt status:** Mentioned: No; recommended: No; rank: not_mentioned; score: -1.0 / 13.
 
-When you're looking for alternatives to ClickHouse, you're usually looking to solve one of three problems: you need something easier to manage, you need better integration with a specific data lake format (like Iceberg/Delta), or you need a different concurrency model. ClickHouse is a beast at raw scan performance, but it's opinionated about its storage format and can be operationally heavy if you aren't using their cloud offering. The answer groups the alternatives based on your specific architectural needs: 1. The "Data Lakehouse" Approach (Decoupled Storage) If your data already lives in S3/GCS in Parquet or Iceberg format, and you don't want to "ingest" it into a proprie...
+When you're looking for alternatives to ClickHouse, you're usually trying to solve for one of three things: operational simplicity, better integration with a specific data lake format (like Iceberg/Delta), or lower maintenance overhead. ClickHouse is very fast, but it is "opinionated" about how you store and manage data. If that doesn't fit your stack, here are the primary alternatives, categorized by how they handle the workload. - 1. The "Cloud-Native/Serverless" Route: StarRocks or Apache Doris If you like the performance profile of ClickHouse but want something that handles real-time updates (upserts/deletes) more gracefully and integrates better with standard BI...
 
 </details>
 

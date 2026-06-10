@@ -30,6 +30,14 @@ JUDGE_SETTINGS = {
     "sleep_between_calls": JUDGE_CONFIG.get("sleep_between_calls", 8),
 }
 
+GEN_CONFIG = CONFIG.get("generation_settings", {})
+MIN_ANSWER_CHARS = int(GEN_CONFIG.get("min_answer_chars", 400))
+NORMAL_FINISH = {"STOP", "FINISH_REASON_STOP", ""}
+
+INPUT_PATH = "results/raw_answers.jsonl"
+OUTPUT_PATH = "results/scored_answers.csv"
+INVALID_PATH = "results/invalid_rows.csv"
+
 SCORING_INSTRUCTIONS = """You are evaluating an LLM answer to a developer question about analytics databases.
 
 Return valid JSON only. No markdown.
@@ -227,29 +235,108 @@ def infer_content_gap(category, prompt, firebolt_in_prompt, firebolt_mentioned, 
 
     return "Performing well"
 
-def main():
-    input_path = "results/raw_answers.jsonl"
-    output_path = "results/scored_answers.csv"
-
-    if not os.path.exists(input_path):
-        raise FileNotFoundError(f"{input_path} not found. Run run_benchmark.py first.")
-
+def load_raw(path):
     rows = []
-    with open(input_path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
             try:
-                row = json.loads(line)
+                rows.append(json.loads(line))
             except Exception:
                 continue
-            if row.get("status") == "ok" and str(row.get("answer", "")).strip():
-                rows.append(row)
+    return rows
 
+
+def select_target_run(rows):
+    """Pick one run_id to score: the run with the most rows, latest if tied."""
+    from collections import Counter
+    counts = Counter(r.get("run_id", "") for r in rows)
+    if not counts:
+        return ""
+    return sorted(counts.items(), key=lambda kv: (kv[1], kv[0]), reverse=True)[0][0]
+
+
+def completeness(row):
+    """Return (is_complete, reason). Uses capture_status when run_benchmark
+    recorded it, otherwise falls back to answer length and finish reason."""
+    cap = row.get("capture_status")
+    if cap is not None:
+        return cap == "complete", cap
+    answer = str(row.get("answer", "")).strip()
+    finish = str(row.get("finish_reason", "") or "")
+    if not answer:
+        return False, "empty"
+    if finish.upper() not in NORMAL_FINISH:
+        return False, "incomplete"
+    if len(answer) < MIN_ANSWER_CHARS:
+        return False, "incomplete"
+    return True, "complete"
+
+
+def split_valid_invalid(all_rows, target_run):
+    valid, invalid = [], []
+    for row in all_rows:
+        rid = row.get("run_id", "")
+        if rid != target_run:
+            invalid.append({**row, "invalid_reason": "other_run_id"})
+            continue
+        if row.get("status") != "ok":
+            invalid.append({**row, "invalid_reason": "api_error"})
+            continue
+        ok, reason = completeness(row)
+        if not ok:
+            invalid.append({**row, "invalid_reason": reason})
+            continue
+        valid.append(row)
+    return valid, invalid
+
+
+def write_invalid_rows(invalid):
+    cols = ["run_id", "prompt_id", "model", "status", "capture_status",
+            "finish_reason", "answer_chars", "invalid_reason", "answer_excerpt"]
+    records = []
+    for row in invalid:
+        answer = str(row.get("answer", ""))
+        records.append({
+            "run_id": row.get("run_id", ""),
+            "prompt_id": row.get("prompt_id", ""),
+            "model": row.get("model", ""),
+            "status": row.get("status", ""),
+            "capture_status": row.get("capture_status", ""),
+            "finish_reason": row.get("finish_reason", ""),
+            "answer_chars": row.get("answer_chars", len(answer.strip())),
+            "invalid_reason": row.get("invalid_reason", ""),
+            "answer_excerpt": excerpt(answer, 200) if answer.strip() else "",
+        })
+    pd.DataFrame(records, columns=cols).to_csv(INVALID_PATH, index=False)
+
+
+def main():
+    input_path = INPUT_PATH
+    output_path = OUTPUT_PATH
+
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f"{input_path} not found. Run run_benchmark.py first.")
+
+    all_rows = load_raw(input_path)
+    run_ids = sorted({r.get("run_id", "") for r in all_rows})
+    target_run = os.getenv("BENCHMARK_RUN_ID") or select_target_run(all_rows)
+    if len(run_ids) > 1:
+        print(f"WARNING: raw answers contain {len(run_ids)} run ids {run_ids}.")
+        print(f"Scoring only run {target_run} to keep the dataset isolated.")
+
+    valid, invalid = split_valid_invalid(all_rows, target_run)
+    write_invalid_rows(invalid)
+
+    print(f"Run {target_run}: {len(valid)} valid answers, {len(invalid)} quarantined "
+          f"(see {INVALID_PATH}).")
+
+    rows = valid
     total = len(rows)
     if total == 0:
-        print("No scorable answers found in", input_path)
+        print("No valid answers to score for run", target_run)
         save_progress("scoring", 0, 0, status="no_rows")
         pd.DataFrame([]).to_csv(output_path, index=False)
         return

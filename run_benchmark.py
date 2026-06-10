@@ -43,10 +43,17 @@ MODELS = [item["model"] for item in CONFIG.get("models", [])]
 GENERATION_SETTINGS = {
     "temperature": GEN_CONFIG.get("temperature", 0.2),
     "top_p": GEN_CONFIG.get("top_p", 0.95),
-    "max_output_tokens": GEN_CONFIG.get("max_output_tokens", 900),
+    "max_output_tokens": GEN_CONFIG.get("max_output_tokens", 4096),
 }
 
 SLEEP_BETWEEN_CALLS = int(GEN_CONFIG.get("sleep_between_calls", 10))
+
+# An answer shorter than this, or one that did not stop normally, is treated as
+# an incomplete capture and is not counted as a usable answer. The real answers
+# in this benchmark run to several thousand characters, so this only catches
+# truncated fragments.
+MIN_ANSWER_CHARS = int(GEN_CONFIG.get("min_answer_chars", 400))
+NORMAL_FINISH = {"STOP", "FINISH_REASON_STOP", ""}
 
 RAW_PATH = "results/raw_answers.jsonl"
 MODEL_ERRORS_PATH = "results/model_errors.jsonl"
@@ -138,8 +145,29 @@ def is_retryable(err):
                ("429", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "503", "500", "INTERNAL", "DEADLINE"))
 
 
+def extract_finish_reason(response):
+    try:
+        candidate = (response.candidates or [None])[0]
+        reason = getattr(candidate, "finish_reason", None)
+        return getattr(reason, "name", "") or str(reason or "")
+    except Exception:
+        return ""
+
+
+def classify_capture(answer, finish_reason):
+    text = (answer or "").strip()
+    if not text:
+        return "empty"
+    if finish_reason.upper() not in NORMAL_FINISH:
+        # MAX_TOKENS, SAFETY, RECITATION and similar mean the answer was cut off.
+        return "incomplete"
+    if len(text) < MIN_ANSWER_CHARS:
+        return "incomplete"
+    return "complete"
+
+
 def call_gemini(model, user_prompt):
-    """Call one model. Returns answer text. Raises on permanent failure."""
+    """Call one model. Returns {answer, finish_reason}. Raises on permanent failure."""
     full_prompt = f"{SYSTEM_PROMPT}\n\nDeveloper question:\n{user_prompt}\n"
     last_error = None
     max_attempts = 5
@@ -155,7 +183,7 @@ def call_gemini(model, user_prompt):
                     max_output_tokens=GENERATION_SETTINGS["max_output_tokens"],
                 ),
             )
-            return response.text or ""
+            return {"answer": response.text or "", "finish_reason": extract_finish_reason(response)}
         except Exception as e:
             last_error = e
             if is_not_found(e):
@@ -169,7 +197,11 @@ def call_gemini(model, user_prompt):
 
 
 def load_completed():
-    """(prompt_id, model) pairs that already have a good answer."""
+    """(prompt_id, model) pairs that already have a complete answer.
+
+    Only complete captures count, so a truncated or empty answer from an earlier
+    run is retried rather than reused.
+    """
     completed = set()
     if os.path.exists(RAW_PATH):
         with open(RAW_PATH, "r", encoding="utf-8") as f:
@@ -178,7 +210,13 @@ def load_completed():
                     row = json.loads(line)
                 except Exception:
                     continue
-                if row.get("status") == "ok" and str(row.get("answer", "")).strip():
+                if row.get("status") != "ok":
+                    continue
+                capture = row.get("capture_status")
+                if capture is None:
+                    # Older rows without the field: fall back to a length check.
+                    capture = classify_capture(row.get("answer", ""), row.get("finish_reason", ""))
+                if capture == "complete":
                     completed.add((row.get("prompt_id"), row.get("model")))
     return completed
 
@@ -262,12 +300,20 @@ def main():
                     }
 
                     try:
-                        record["answer"] = call_gemini(model, row["prompt"])
+                        result = call_gemini(model, row["prompt"])
+                        answer = result["answer"]
+                        record["answer"] = answer
+                        record["finish_reason"] = result["finish_reason"]
+                        record["answer_chars"] = len((answer or "").strip())
                         record["status"] = "ok"
+                        record["capture_status"] = classify_capture(answer, result["finish_reason"])
                     except Exception as e:
                         record["answer"] = ""
+                        record["finish_reason"] = ""
+                        record["answer_chars"] = 0
                         record["error"] = str(e)
                         record["status"] = "error"
+                        record["capture_status"] = "error"
 
                     out.write(json.dumps(record, ensure_ascii=False) + "\n")
                     out.flush()

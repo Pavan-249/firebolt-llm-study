@@ -17,3 +17,4 @@ results/archive/
 results/progress.json
 results/available_models.json
 results/raw_answers.jsonl
+results/invalid_rows.csv

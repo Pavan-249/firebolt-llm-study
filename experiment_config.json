@@ -21,8 +21,10 @@
   "generation_settings": {
     "temperature": 0.2,
     "top_p": 0.95,
-    "max_output_tokens": 900,
-    "max_prompts": 8
+    "max_output_tokens": 4096,
+    "max_prompts": 8,
+    "min_answer_chars": 400,
+    "sleep_between_calls": 10
   },
   "judge_settings": {
     "model": "gemini-3.1-flash-lite",
