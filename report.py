@@ -515,8 +515,8 @@ def prompt_catalog_records():
             "prompt_id": field(row, "prompt_id"),
             "framing": field(row, "framing"),
             "category": field(row, "category"),
-            "prompt": short(field(row, "prompt"), 90),
-            "why_included": short(field(row, "prompt_rationale"), 90),
+            "prompt": field(row, "prompt"),
+            "why_included": field(row, "prompt_rationale"),
         })
     return records
 
@@ -780,6 +780,109 @@ def appendix_html():
     return "\n".join(parts)
 
 
+def answer_block(value):
+    """Clean a captured model answer for display while keeping line breaks.
+    Strips em dashes, emoji, and markdown markers, but does not collapse
+    whitespace or reword, so the response stays faithful to what the model said."""
+    if value is None:
+        return ""
+    try:
+        if isinstance(value, float) and pd.isna(value):
+            return ""
+    except Exception:
+        pass
+    text = str(value)
+    for old, new in {
+        "—": "-", "–": "-", "―": "-", "‑": "-", "•": "-",
+        "‘": "'", "’": "'", "“": '"', "”": '"', "…": "...",
+    }.items():
+        text = text.replace(old, new)
+    text = EMOJI.sub("", text)
+    text = text.replace("**", "").replace("###", "").replace("##", "")
+    lines = [line.rstrip() for line in text.split("\n")]
+    return "\n".join(lines).strip()
+
+
+def response_detail_fields(row):
+    """Every field the scored CSV holds for one model answer, ordered for reading."""
+    framing = "Named" if row.get("firebolt_in_prompt") else "Unnamed"
+    return [
+        ("Prompt", field(row, "prompt")),
+        ("Framing", framing),
+        ("Category", field(row, "category")),
+        ("Why this prompt was included", field(row, "prompt_rationale")),
+        ("Firebolt mentioned", yes_no(row.get("firebolt_mentioned"))),
+        ("Firebolt recommended", yes_no(row.get("firebolt_recommended"))),
+        ("Firebolt rank among named products", field(row, "firebolt_rank", "not_mentioned")),
+        ("Recommendation applies to this prompt", yes_no(row.get("recommendation_metric_applicable"))),
+        ("Visibility score", f"{num(row.get('visibility_score', 0), 1)} / {score_max_for_row(row)}"),
+        ("Primary recommendation in the answer", field(row, "primary_recommendation", "unclear")),
+        ("Other products the answer put forward", field(row, "recommended_products", "none recorded")),
+        ("How the answer framed its recommendation", field(row, "recommendation_reason")),
+        ("Why the model likely answered this way", field(row, "why_model_likely_answered_this_way")),
+        ("Why Firebolt was or was not recommended", field(row, "why_firebolt_was_or_was_not_recommended")),
+        ("Public evidence that would help Firebolt", field(row, "what_public_evidence_would_improve_firebolt_chance")),
+        ("Factual risks the judge noted", field(row, "factual_risks", "none recorded")),
+        ("Missing Firebolt evidence", field(row, "missing_firebolt_evidence", "none recorded")),
+        ("Answer quality (judge)", f"{field(row, 'answer_quality_score_0_to_5', '0')} / 5"),
+        ("Firebolt explanation quality (judge)", f"{field(row, 'firebolt_explanation_quality_0_to_5', '0')} / 5"),
+        ("Competitor explanation quality (judge)", f"{field(row, 'competitor_explanation_quality_0_to_5', '0')} / 5"),
+        ("One-line takeaway", field(row, "one_line_takeaway")),
+        ("Judge status", field(row, "judge_status", "ok")),
+    ]
+
+
+def full_detail_html():
+    if not has_data:
+        return '<p class="muted">No responses available.</p>'
+    parts = []
+    ordered = df.sort_values(["prompt_id", "model"])
+    for _, row in ordered.iterrows():
+        framing = "Named" if row.get("firebolt_in_prompt") else "Unnamed"
+        summary = (
+            f"{field(row, 'prompt_id')} - {field(row, 'model')} - {framing} - "
+            f"mentioned: {yes_no(row.get('firebolt_mentioned'))}, "
+            f"recommended: {yes_no(row.get('firebolt_recommended'))}, "
+            f"score {num(row.get('visibility_score', 0), 1)} / {score_max_for_row(row)}"
+        )
+        fields_html = "".join(
+            f"<p><strong>{esc(label)}:</strong> {esc(value)}</p>"
+            for label, value in response_detail_fields(row)
+            if clean_text(value)
+        )
+        answer_html = html.escape(answer_block(row.get("answer", "")))
+        parts.append(
+            "<details class='response'>"
+            f"<summary>{esc(summary)}</summary>"
+            f"{fields_html}"
+            "<p><strong>Full model response:</strong></p>"
+            f"<div class='answer-full'>{answer_html}</div>"
+            "</details>"
+        )
+    return "\n".join(parts)
+
+
+def full_detail_md():
+    if not has_data:
+        return "_No responses available._\n"
+    lines = []
+    ordered = df.sort_values(["prompt_id", "model"])
+    for _, row in ordered.iterrows():
+        framing = "Named" if row.get("firebolt_in_prompt") else "Unnamed"
+        lines.append(
+            f"#### {field(row, 'prompt_id')} - {field(row, 'model')} ({framing}) - "
+            f"score {num(row.get('visibility_score', 0), 1)} / {score_max_for_row(row)}\n"
+        )
+        for label, value in response_detail_fields(row):
+            if clean_text(value):
+                lines.append(f"- **{label}:** {clean_text(value)}")
+        lines.append("\n**Full model response:**\n")
+        answer = answer_block(row.get("answer", ""))
+        lines.append("\n".join("> " + line if line else ">" for line in answer.split("\n")))
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def md_table(records, columns):
     if isinstance(records, pd.DataFrame):
         records = records.to_dict("records")
@@ -987,6 +1090,14 @@ def build_html():
         ("average_visibility_score", "Average visibility score"),
     ]))
 
+    parts.append("<h3>Full response detail</h3>")
+    parts.append(
+        "<p>One entry per model answer, ordered by prompt then model. Each entry holds the full prompt, the "
+        "complete response the model returned, the deterministic checks, and the judge notes. This is the single "
+        "source of truth behind every number above. Entries are collapsed by default; click one to open it.</p>"
+    )
+    parts.append(full_detail_html())
+
     parts.append("<h2>8. Named vs unnamed prompt behavior</h2>")
     parts.append(table_html(named_records(), [
         ("prompt_framing", "Prompt framing"),
@@ -1163,6 +1274,22 @@ summary {
   max-width: none;
   margin-top: 8px;
   color: #222222;
+}
+details.response summary { font-size: 13.5px; }
+details.response p { margin: 6px 0; font-size: 14px; }
+.answer-full {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: #faf9f6;
+  border: 1px solid #e3e3e0;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #222222;
+  max-height: 460px;
+  overflow-y: auto;
 }
 @media (max-width: 720px) {
   .page { padding: 28px 18px 48px; }
@@ -1345,6 +1472,11 @@ def build_markdown():
         ("recommendation_rate", "Recommendation rate"),
         ("average_visibility_score", "Average visibility score"),
     ]))
+
+    md.append("### Full response detail\n")
+    md.append("One entry per model answer, with the full prompt, the complete model response, the deterministic "
+              "checks, and the judge notes. This is the single source of truth behind every number above.\n")
+    md.append(full_detail_md())
 
     md.append("## 8. Named vs unnamed prompt behavior\n")
     md.append(md_table(named_records(), [
